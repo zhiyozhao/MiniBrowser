@@ -1,0 +1,129 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Import signing identity
+        env:
+          P12_BASE64: ${{ secrets.MINIBROWSER_DEV_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.MINIBROWSER_DEV_P12_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN=minibrowser-signing.keychain-db
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 16)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          echo "$P12_BASE64" | base64 --decode > /tmp/mb-dev.p12
+          security import /tmp/mb-dev.p12 -k "$KEYCHAIN" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          rm /tmp/mb-dev.p12
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+
+      - name: Set version from tag
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" Resources/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $GITHUB_RUN_NUMBER" Resources/Info.plist
+
+      - name: Build
+        run: Scripts/build-app.sh
+
+      - name: Verify signature
+        run: |
+          set -euo pipefail
+          codesign --verify --deep --strict MiniBrowser.app
+          codesign -dvv MiniBrowser.app 2>&1 | grep "Authority=MiniBrowser Development"
+
+      - name: Smoke test (launch)
+        run: |
+          set -euo pipefail
+          MiniBrowser.app/Contents/MacOS/MiniBrowser &
+          PID=$!
+          sleep 5
+          kill -0 "$PID"
+          kill "$PID" || true
+
+      - name: Package DMG
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir dmg
+          cp -R MiniBrowser.app dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname MiniBrowser -srcfolder dmg -ov -format UDZO "MiniBrowser-$VERSION.dmg"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" "MiniBrowser-$VERSION.dmg" \
+            --title "MiniBrowser $VERSION" --generate-notes
+
+      - name: Update Homebrew tap
+        env:
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          SHA256="$(shasum -a 256 "MiniBrowser-$VERSION.dmg" | awk '{print $1}')"
+          git clone "https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/zhiyozhao/homebrew-tap.git" tap
+          cd tap
+          mkdir -p Casks
+          cat > Casks/minibrowser.rb <<EOF
+          cask "minibrowser" do
+            version "$VERSION"
+            sha256 "$SHA256"
+
+            url "https://github.com/zhiyozhao/MiniBrowser/releases/download/v#{version}/MiniBrowser-#{version}.dmg"
+            name "MiniBrowser"
+            desc "Minimal native macOS browser (WKWebView)"
+            homepage "https://github.com/zhiyozhao/MiniBrowser"
+
+            depends_on macos: :ventura
+
+            preflight do
+              system_command "/usr/bin/pkill", args: ["-x", "MiniBrowser"], must_succeed: false
+            end
+
+            app "MiniBrowser.app"
+
+            # Self-signed, not notarized: strip quarantine so the app opens
+            # without the Gatekeeper dance. Stable signing identity keeps
+            # TCC grants across updates.
+            postflight do
+              system_command "/usr/bin/xattr",
+                             args: ["-dr", "com.apple.quarantine", "#{appdir}/MiniBrowser.app"],
+                             must_succeed: false
+            end
+
+            caveats do
+              unsigned_accessibility
+            end
+
+            zap trash: "~/Library/Preferences/com.zhao.minibrowser.plist"
+          end
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/minibrowser.rb
+          if git diff --cached --quiet; then
+            echo "cask 无变化"
+          else
+            git commit -m "minibrowser $VERSION"
+            git push
+          fi
