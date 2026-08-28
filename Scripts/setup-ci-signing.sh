@@ -23,17 +23,24 @@ import re, sys
 work = sys.argv[1]
 pem = open(f'{work}/all.pem').read()
 blocks = re.split(r'(?=Bag Attributes)', pem)
-cert = key = None
+# 证书的 friendlyName 是标签名；私钥的 friendlyName 是哈希，靠 localKeyID 与证书配对
+target_keyid = cert = None
+keys = {}
 for b in blocks:
-    if 'MiniBrowser Development' not in b:
-        continue
+    m_fn = re.search(r'friendlyName: (.+)', b)
+    m_kid = re.search(r'localKeyID: (.+)', b)
     m_cert = re.search(r'(-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----)', b, re.S)
     m_key = re.search(r'(-----BEGIN (?:RSA )?PRIVATE KEY-----.*?-----END (?:RSA )?PRIVATE KEY-----)', b, re.S)
-    if m_cert: cert = m_cert.group(1)
-    if m_key: key = m_key.group(1)
-assert cert and key, '未找到 MiniBrowser Development 身份'
+    kid = ' '.join(m_kid.group(1).split()) if m_kid else None
+    if m_cert and m_fn and m_fn.group(1).strip() == 'MiniBrowser Development':
+        cert = m_cert.group(1)
+        target_keyid = kid
+    if m_key and kid:
+        keys[kid] = m_key.group(1)
+assert cert, '未找到 MiniBrowser Development 证书'
+assert target_keyid in keys, '未找到对应私钥'
 open(f'{work}/cert.pem', 'w').write(cert + '\n')
-open(f'{work}/key.pem', 'w').write(key + '\n')
+open(f'{work}/key.pem', 'w').write(keys[target_keyid] + '\n')
 print('提取成功')
 EOF
 
