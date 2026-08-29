@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var windowControllers: [NSWindowController] = []
+    private var windowControllers: [BrowserWindowController] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMainMenu()
@@ -38,19 +38,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hostingController.sizingOptions = [] // 不要用 SwiftUI 内容尺寸反推窗口大小
         window.contentViewController = hostingController
 
-        let controller = NSWindowController(window: window)
+        let controller = BrowserWindowController(window: window)
+        controller.onClose = { [weak self] closing in
+            self?.windowControllers.removeAll { $0 === closing }
+        }
         controller.showWindow(nil)
         // HostingController 会把窗口缩到最小，显示后强制恢复默认尺寸
         window.setContentSize(NSSize(width: 1100, height: 700))
         window.center()
         windowControllers.append(controller)
-
-        NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification, object: window, queue: .main
-        ) { [weak self] note in
-            guard let self, let closing = note.object as? NSWindow else { return }
-            self.windowControllers.removeAll { $0.window === closing }
-        }
     }
 
     private func setupMainMenu() {
@@ -86,6 +82,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainMenu.addItem(editItem)
 
         NSApp.mainMenu = mainMenu
+    }
+}
+
+/// 窗口控制器：用 delegate 回调代替 NotificationCenter 观察，避免观察者残留
+private final class BrowserWindowController: NSWindowController, NSWindowDelegate {
+    var onClose: ((BrowserWindowController) -> Void)?
+
+    override func showWindow(_ sender: Any?) {
+        super.showWindow(sender)
+        window?.delegate = self
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        onClose?(self)
     }
 }
 
