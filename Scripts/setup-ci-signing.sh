@@ -1,10 +1,10 @@
 #!/bin/bash
-# 把 "MiniBrowser Development" 签名身份导出并设置为 GitHub Actions secrets
+# 把 "DEV X" 签名身份导出并设置为 GitHub Actions secrets
 # 供 release workflow 在 CI 中用同一身份签名（brew 更新后 TCC 权限不丢）
 # 用法: Scripts/setup-ci-signing.sh   （会提示输入钥匙串密码，并可能弹出"允许访问"对话框）
 set -e
 
-IDENTITY="MiniBrowser Development"
+IDENTITY="DEV X"
 REPO="zhiyozhao/MiniBrowser"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -32,12 +32,12 @@ for b in blocks:
     m_cert = re.search(r'(-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----)', b, re.S)
     m_key = re.search(r'(-----BEGIN (?:RSA )?PRIVATE KEY-----.*?-----END (?:RSA )?PRIVATE KEY-----)', b, re.S)
     kid = ' '.join(m_kid.group(1).split()) if m_kid else None
-    if m_cert and m_fn and m_fn.group(1).strip() == 'MiniBrowser Development':
+    if m_cert and m_fn and m_fn.group(1).strip() == 'DEV X':
         cert = m_cert.group(1)
         target_keyid = kid
     if m_key and kid:
         keys[kid] = m_key.group(1)
-assert cert, '未找到 MiniBrowser Development 证书'
+assert cert, '未找到 DEV X 证书'
 assert target_keyid in keys, '未找到对应私钥'
 open(f'{work}/cert.pem', 'w').write(cert + '\n')
 open(f'{work}/key.pem', 'w').write(keys[target_keyid] + '\n')

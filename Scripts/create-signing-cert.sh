@@ -1,9 +1,9 @@
 #!/bin/bash
-# 创建本地自签名代码签名证书 "MiniBrowser Development" 并导入登录钥匙串
+# 创建本地自签名代码签名证书 "DEV X" 并导入登录钥匙串
 # 无需 Apple 开发者账号；提供稳定签名身份（TCC 权限等不会因重编译失效）
 set -e
 
-IDENTITY="MiniBrowser Development"
+IDENTITY="DEV X"
 KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT

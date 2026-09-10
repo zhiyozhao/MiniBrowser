@@ -45,7 +45,7 @@ jobs:
         run: |
           set -euo pipefail
           codesign --verify --deep --strict MiniBrowser.app
-          codesign -dvv MiniBrowser.app 2>&1 | grep "Authority=MiniBrowser Development"
+          codesign -dvv MiniBrowser.app 2>&1 | grep "Authority=DEV X"
 
       - name: Smoke test (launch)
         run: |

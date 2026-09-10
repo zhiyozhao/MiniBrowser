@@ -5,7 +5,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 APP="MiniBrowser.app"
-IDENTITY="MiniBrowser Development"   # 本地自签名证书（Scripts/create-signing-cert.sh 创建）
+IDENTITY="DEV X"   # 本地自签名证书（Scripts/create-signing-cert.sh 创建）
 
 swift build -c release
 
