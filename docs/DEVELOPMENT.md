@@ -7,6 +7,7 @@
 - `MiniBrowserCore`：`AddressResolver` 负责地址栏输入，`BrowserWindowState` 负责单个窗口的标签顺序与选择，`SiteZoomSettings` 负责按规范化域名读写缩放。
 - `MiniBrowser` executable：`BrowserWindowModel` 将纯状态映射到 `BrowserTab` / `WKWebView`，SwiftUI 和 AppKit 负责界面及窗口生命周期，`ZoomStore` 把 Core 的 `Double` 适配为 WebKit 使用的 `CGFloat`。
 - `Tests/MiniBrowserCoreTests` 使用 Swift Testing。测试不创建 WebView、不访问真实网站、不读取用户真实设置；每个设置测试使用唯一 `UserDefaults` suite 并在结束时清理。
+- `Tests/MiniBrowserIntegrationTests` 使用真实 NSWindow/WKWebView 和随机端口本地 HTTP 服务；自签 HTTPS 测试由系统 `/usr/bin/openssl` 生成临时证书并启动测试服，结束后终止进程、删除目录。所有测试不访问外部网站、不登录账号，也不需要辅助功能权限。
 
 核心逻辑修改采用红绿 TDD：先运行能复现问题的测试并确认失败，再实现修改。不要为了通过测试而删除用例、降低断言或加入 skip。
 
@@ -23,6 +24,24 @@ WebContent 崩溃恢复由 `WebContentRecoveryState` 限制为每个标签页一
 弹窗由 `createWebViewWith` 同步返回真实 WebView，不能改成另开标签或重新加载 URL，否则会丢失 opener、POST 和 `window.close()`。弹窗窗口固定为 520×640，复用 WebKit 传入的 configuration，并显式沿用 opener 的 websiteDataStore。
 
 `BrowserWindowState` 只存 UUID，不持有 WebView。关闭选中标签时优先选择原位置的后一个标签，末尾则选择前一个；关闭未选中标签不改变选择。正常 UI 关闭最后一个标签仍由窗口层处理，本次拆分没有改变该流程。
+
+## 有意不做
+
+以下均按用户明确的极简定位排除，不增加替代面板、设置或外开入口：
+
+- **下载**：不实现 `WKDownload`；附件和无法显示的 MIME 响应直接取消导航，停留在当前页面。
+- **文件上传**：不实现 `runOpenPanelWith`，保持 WebKit 默认禁用行为，不弹文件选择器。
+- **外部 App 协议**：不调用 `NSWorkspace`，`weixin:`、`alipays:`、`mailto:` 等直接取消导航，不弹确认框。
+- **摄像头和麦克风**：权限请求直接拒绝，不弹框、不记忆选择，Info.plist 不增加用途说明。
+- **HTTP Basic 认证**：不提供账号密码输入框，非 serverTrust 质询交回 WebKit 默认处理。
+- **默认浏览器打开**：不添加菜单、快捷键或自动外开逻辑。
+
+## 已知限制
+
+- P6：YouTube 首页信息流问题未处理，播放页问题不在本次修复范围。
+- P10：WKWebView 的 ITP / 第三方 Cookie 没有受支持的关闭 API，嵌套登录和 3DS 仍可能失败。
+- P12：WebAuthn / 通行密钥需要额外 App 集成，本次不支持。
+- P13：网页定位与通知未接入；证书错误则由上方的会话内例外流程处理。
 
 ## 构建、签名与产物
 

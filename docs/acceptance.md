@@ -10,3 +10,7 @@
 | P11 崩溃恢复 | 每个标签页第一次 WebContent 崩溃自动 reload；再次崩溃显示最简错误页，无重试按钮或额外界面。 | `WebContentRecoveryTests` 验证状态；`WebContentRecoveryIntegrationTests` 验证本地页只收到一次自动重载，随后显示错误页且无按钮。 |
 | P14 缩放记忆 | 存储键与规范化域名使用不同变量，始终写入 `MiniBrowserZoomLevels`。 | `SiteZoomSettingsTests.persistence`：检查固定 key 中的字典，并由新实例读回；`normalizedHost` 覆盖大小写和 `www`。 |
 | P9 UA | 所有页面使用同一 Safari UA；通过 `applicationNameForUserAgent` 补 Safari 段，保留真实 WebKit 版本，不按域名分支。 | `UserAgentTests.uniformSafariUserAgent`：两个本地源的服务端请求头与 `navigator.userAgent` 一致，包含 Safari/WebKit 段且不含 Chrome。 |
+
+## 有意不做的验证
+
+`UnsupportedFeatureTests` 使用本地附件和 `weixin:` 页面验证取消导航后仍停留在原页。媒体权限委托固定返回 `.deny`，不弹框；当前 WKWebView 测试上下文未暴露 `mediaDevices`，因此不做真实硬件或权限 UI 测试。文件上传保持 WebKit 默认禁用；Basic 认证无自定义 UI；没有默认浏览器入口。完整范围见 `DEVELOPMENT.md` 的“有意不做”。

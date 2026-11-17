@@ -31,6 +31,7 @@ struct WebViewRepresentable: NSViewRepresentable {
         private let serverTrustSession: ServerTrustSession
         private var observations: [NSKeyValueObservation] = []
         private var lastMainFrameURL: URL?
+        private var lastCommittedURL: URL?
         private var recoveryState = WebContentRecoveryState()
         private var pendingCertificate: (site: ServerTrustSession.Site, trust: SecTrust, url: URL)?
 
@@ -76,6 +77,14 @@ struct WebViewRepresentable: NSViewRepresentable {
         }
 
         func webView(_ webView: WKWebView,
+                     requestMediaCapturePermissionFor origin: WKSecurityOrigin,
+                     initiatedByFrame frame: WKFrameInfo,
+                     type: WKMediaCaptureType,
+                     decisionHandler: @escaping (WKPermissionDecision) -> Void) {
+            decisionHandler(.deny)
+        }
+
+        func webView(_ webView: WKWebView,
                      runJavaScriptAlertPanelWithMessage message: String,
                      initiatedByFrame frame: WKFrameInfo,
                      completionHandler: @escaping () -> Void) {
@@ -100,10 +109,35 @@ struct WebViewRepresentable: NSViewRepresentable {
         func webView(_ webView: WKWebView,
                      decidePolicyFor navigationAction: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            guard WebNavigationPolicy.allows(navigationAction.request.url) else {
+                decisionHandler(.cancel)
+                return
+            }
             if navigationAction.targetFrame?.isMainFrame == true {
                 lastMainFrameURL = navigationAction.request.url
             }
             decisionHandler(.allow)
+        }
+
+        func webView(_ webView: WKWebView,
+                     decidePolicyFor navigationResponse: WKNavigationResponse,
+                     decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+            let isAttachment = (navigationResponse.response as? HTTPURLResponse)?.allHeaderFields.contains { key, value in
+                String(describing: key).lowercased() == "content-disposition"
+                    && String(describing: value).localizedCaseInsensitiveContains("attachment")
+            } == true
+            if !navigationResponse.canShowMIMEType || isAttachment {
+                decisionHandler(.cancel)
+                if navigationResponse.isForMainFrame,
+                   let lastCommittedURL,
+                   lastCommittedURL != webView.url {
+                    DispatchQueue.main.async {
+                        webView.load(URLRequest(url: lastCommittedURL))
+                    }
+                }
+            } else {
+                decisionHandler(.allow)
+            }
         }
 
         func webView(_ webView: WKWebView,
@@ -139,6 +173,7 @@ struct WebViewRepresentable: NSViewRepresentable {
 
         /// 页面加载完成后再应用一次，确保缩放生效
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            lastCommittedURL = webView.url
             tab.applySiteZoom()
         }
 
@@ -169,6 +204,7 @@ struct WebViewRepresentable: NSViewRepresentable {
                      createWebViewWith configuration: WKWebViewConfiguration,
                      for navigationAction: WKNavigationAction,
                      windowFeatures: WKWindowFeatures) -> WKWebView? {
+            guard WebNavigationPolicy.allows(navigationAction.request.url) else { return nil }
             configuration.websiteDataStore = webView.configuration.websiteDataStore
             WebViewConfigurationFactory.configure(configuration)
             return onCreateWebView(configuration, navigationAction, windowFeatures)
