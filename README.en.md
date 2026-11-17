@@ -7,7 +7,7 @@
 <h1 align="center">MiniBrowser</h1>
 
 <p align="center">
-  A macOS browser that shrinks to a very small window, so a page can stay open in a corner of your screen.
+  A little Mac browser you can shrink really small, completely separate from your main browser.
 </p>
 
 <p align="center">

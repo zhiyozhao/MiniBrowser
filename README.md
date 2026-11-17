@@ -7,7 +7,7 @@
 <h1 align="center">MiniBrowser</h1>
 
 <p align="center">
-  能缩得很小的 macOS 浏览器，放在屏幕一角开着一个网页。
+  一个能缩得很小的 Mac 浏览器，跟你平时用的浏览器完全分开。
 </p>
 
 <p align="center">
