@@ -1,11 +1,10 @@
-#!/bin/bash
-# 构建 MiniBrowser.app：release 编译 → 打包（含图标）→ 代码签名 → 校验
-# 用法: Scripts/build-app.sh
-set -e
+#!/bin/sh
+# 构建 MiniBrowser.app：release 编译 → 打包（含图标）→ DEV X 签名 → 校验
+set -eu
 cd "$(dirname "$0")/.."
 
 APP="MiniBrowser.app"
-IDENTITY="DEV X"   # 本地自签名证书（Scripts/create-signing-cert.sh 创建）
+VERSION=$(Scripts/version.sh)
 
 swift build -c release
 
@@ -13,15 +12,16 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/MiniBrowser "$APP/Contents/MacOS/"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 
-if security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
-    codesign --force --sign "$IDENTITY" "$APP"
-else
-    echo "警告: 未找到签名身份 '$IDENTITY'，回退为 ad-hoc 签名"
-    echo "      可运行 Scripts/create-signing-cert.sh 创建"
-    codesign --force --sign - "$APP"
+# 稳定的 DEV X 签名让覆盖安装保留已有权限；禁止回退为 ad-hoc。
+if ! security find-certificate -c "DEV X" >/dev/null 2>&1; then
+    echo "error: DEV X signing certificate not found" >&2
+    exit 1
 fi
-codesign -v "$APP"
+codesign --force --sign "DEV X" "$APP"
+codesign --verify --deep --strict "$APP"
+codesign -dvv "$APP" 2>&1 | grep "Authority=DEV X"
 
-echo "已生成并签名: $(pwd)/$APP"
+echo "built $(pwd)/$APP"
