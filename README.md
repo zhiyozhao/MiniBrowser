@@ -1,3 +1,5 @@
+<p align="right"><b>中文</b> · <a href="README.en.md">English</a></p>
+
 <p align="center">
   <img src="docs/assets/icon-256.png" width="128" height="128" alt="">
 </p>
@@ -5,8 +7,11 @@
 <h1 align="center">MiniBrowser</h1>
 
 <p align="center">
-  能缩得很小的 macOS 浏览器，放在屏幕一角开着一个网页。<br>
-  中文 · <a href="README.en.md">English</a> · <a href="https://zhiyozhao.github.io/MiniBrowser/">官网</a>
+  能缩得很小的 macOS 浏览器，放在屏幕一角开着一个网页。
+</p>
+
+<p align="center">
+  <a href="#安装"><b>安装</b></a> · <a href="https://zhiyozhao.github.io/MiniBrowser/">官网</a>
 </p>
 
 <picture>
@@ -18,13 +23,13 @@
 
 需要 macOS 13 或更新版本。
 
-**用 Homebrew**
+### 用 Homebrew
 
 ```bash
 brew install --cask zhiyozhao/tap/minibrowser
 ```
 
-**手动安装**
+### 手动安装
 
 1. 从 [Releases](https://github.com/zhiyozhao/MiniBrowser/releases/latest) 下载 DMG。
 2. 打开 DMG，把 MiniBrowser 拖进“应用程序”。
@@ -59,13 +64,16 @@ brew install --cask zhiyozhao/tap/minibrowser
 
 ## 常见问题
 
-**窗口大小会被记住吗？**
+### 窗口大小会被记住吗？
+
 不会。`⌘ N` 新建的窗口都是 1100 × 700。
 
-**有些网站登录不上？**
+### 有些网站登录不上？
+
 部分登录方式用不了，比如通行密钥（Passkey）。
 
-**怎么卸载？**
+### 怎么卸载？
+
 `brew uninstall --cask --zap minibrowser`，会一起删掉网站数据和设置。手动安装的，把 MiniBrowser 拖到废纸篓。
 
 ---

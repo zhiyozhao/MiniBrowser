@@ -22,18 +22,20 @@
 
 <main>
   <div class="hero">
-    <h1>MiniBrowser</h1>
+    <h1><img class="app-icon" src="assets/icon-256.png" width="64" height="64" alt="">MiniBrowser</h1>
     <p>能缩得很小的 macOS 浏览器，放在屏幕一角开着一个网页。</p>
+    <div class="actions"><a class="btn" href="#install">安装</a><span>macOS 13 及以上，免费</span></div>
     <picture>
       <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="assets/corner-zh-dark.png" width="640" height="720">
       <source media="(max-width: 720px)" srcset="assets/corner-zh-light.png" width="640" height="720">
       <source media="(prefers-color-scheme: dark)" srcset="assets/hero-zh-dark.png">
       <img src="assets/hero-zh-light.png" width="1200" height="720" alt="示意场景：左边是一个用灰色色块画出的编辑器窗口，右边是 MiniBrowser 的真实窗口截图，320 pt 宽，开着一个示例文章页">
     </picture>
+    <a class="more" href="#features" aria-label="往下看"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></a>
   </div>
 
   <div class="wrap">
-    <section>
+    <section id="features">
       <h2>缩到多窄都能用</h2>
       <p class="lead">越窄按钮越少，最窄时只剩地址栏。</p>
       <picture class="shot">

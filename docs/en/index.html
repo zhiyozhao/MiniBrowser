@@ -22,18 +22,20 @@
 
 <main>
   <div class="hero">
-    <h1>MiniBrowser</h1>
+    <h1><img class="app-icon" src="../assets/icon-256.png" width="64" height="64" alt="">MiniBrowser</h1>
     <p>A macOS browser that shrinks to a very small window, so a page can stay open in a corner of your screen.</p>
+    <div class="actions"><a class="btn" href="#install">Install</a><span>macOS 13 or later, free</span></div>
     <picture>
       <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="../assets/corner-en-dark.png" width="640" height="720">
       <source media="(max-width: 720px)" srcset="../assets/corner-en-light.png" width="640" height="720">
       <source media="(prefers-color-scheme: dark)" srcset="../assets/hero-en-dark.png">
       <img src="../assets/hero-en-light.png" width="1200" height="720" alt="Mock-up: on the left, an editor window drawn with grey blocks; on the right, a real screenshot of a 320 pt wide MiniBrowser window showing a sample article">
     </picture>
+    <a class="more" href="#features" aria-label="Scroll down"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></a>
   </div>
 
   <div class="wrap">
-    <section>
+    <section id="features">
       <h2>Usable at any width</h2>
       <p class="lead">The narrower the window, the fewer buttons it shows, down to just the address bar.</p>
       <picture class="shot">

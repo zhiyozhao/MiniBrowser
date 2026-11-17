@@ -1,3 +1,5 @@
+<p align="right"><a href="README.md">中文</a> · <b>English</b></p>
+
 <p align="center">
   <img src="docs/assets/icon-256.png" width="128" height="128" alt="">
 </p>
@@ -5,8 +7,11 @@
 <h1 align="center">MiniBrowser</h1>
 
 <p align="center">
-  A macOS browser that shrinks to a very small window, so a page can stay open in a corner of your screen.<br>
-  <a href="README.md">中文</a> · English · <a href="https://zhiyozhao.github.io/MiniBrowser/en/">Website</a>
+  A macOS browser that shrinks to a very small window, so a page can stay open in a corner of your screen.
+</p>
+
+<p align="center">
+  <a href="#install"><b>Install</b></a> · <a href="https://zhiyozhao.github.io/MiniBrowser/en/">Website</a>
 </p>
 
 <picture>
@@ -18,13 +23,13 @@
 
 Requires macOS 13 or later. The menus are in Chinese; the toolbar is icons only.
 
-**With Homebrew**
+### With Homebrew
 
 ```bash
 brew install --cask zhiyozhao/tap/minibrowser
 ```
 
-**By hand**
+### By hand
 
 1. Download the DMG from [Releases](https://github.com/zhiyozhao/MiniBrowser/releases/latest).
 2. Open the DMG and drag MiniBrowser into Applications.
@@ -59,13 +64,16 @@ Downloading and uploading files, links that open other apps, camera and micropho
 
 ## FAQ
 
-**Does it remember the window size?**
+### Does it remember the window size?
+
 No. Windows opened with `⌘ N` are always 1100 × 700.
 
-**Some sites won't let me sign in?**
+### Some sites won't let me sign in?
+
 Some sign-in methods don't work, such as passkeys.
 
-**How do I uninstall it?**
+### How do I uninstall it?
+
 `brew uninstall --cask --zap minibrowser` also removes website data and settings. If you installed it by hand, drag MiniBrowser to the Trash.
 
 ---
