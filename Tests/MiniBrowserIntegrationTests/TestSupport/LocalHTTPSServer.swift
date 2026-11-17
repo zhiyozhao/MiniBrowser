@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import Security
 
 /// 测试专用自签 HTTPS 服务；证书、密钥和进程均随测试结束清理。
 @MainActor
@@ -9,17 +10,58 @@ final class LocalHTTPSServer {
     private let directory: URL
     private let process: Process
 
-    init(title: String = "trusted-local") async throws {
+    init(title: String = "trusted-local", trustedCA: Bool = false) async throws {
         directory = try makeTemporaryDirectory("https")
         let certificate = directory.appendingPathComponent("certificate.pem")
         let key = directory.appendingPathComponent("key.pem")
         try """
         <!doctype html><html><head><title>\(title)</title></head><body>local TLS ok</body></html>
         """.write(to: directory.appendingPathComponent("index.html"), atomically: true, encoding: .utf8)
-        try Self.run(Self.openssl, arguments: [
-            "req", "-x509", "-newkey", "rsa:2048", "-sha256", "-days", "1", "-nodes",
-            "-subj", "/CN=localhost", "-keyout", key.path, "-out", certificate.path
-        ])
+        if trustedCA {
+            let caCertificate = directory.appendingPathComponent("ca-certificate.pem")
+            let caKey = directory.appendingPathComponent("ca-key.pem")
+            let request = directory.appendingPathComponent("leaf-request.pem")
+            let extensions = directory.appendingPathComponent("leaf-extensions.cnf")
+            let caConfiguration = directory.appendingPathComponent("ca-configuration.cnf")
+            try """
+            [req]
+            distinguished_name=dn
+            [dn]
+            [ca_ext]
+            basicConstraints=critical,CA:TRUE
+            keyUsage=critical,keyCertSign,cRLSign
+            subjectKeyIdentifier=hash
+            """.write(to: caConfiguration, atomically: true, encoding: .utf8)
+            try """
+            basicConstraints=critical,CA:FALSE
+            keyUsage=critical,digitalSignature,keyEncipherment
+            extendedKeyUsage=serverAuth
+            subjectAltName=DNS:localhost,IP:127.0.0.1
+            """.write(to: extensions, atomically: true, encoding: .utf8)
+            try Self.run(Self.openssl, arguments: [
+                "req", "-x509", "-newkey", "rsa:2048", "-sha256", "-days", "1", "-nodes",
+                "-config", caConfiguration.path, "-extensions", "ca_ext",
+                "-subj", "/CN=MiniBrowserTestCA", "-keyout", caKey.path, "-out", caCertificate.path
+            ])
+            try Self.run(Self.openssl, arguments: [
+                "x509", "-in", caCertificate.path, "-outform", "der",
+                "-out", directory.appendingPathComponent("ca-certificate.der").path
+            ])
+            try Self.run(Self.openssl, arguments: [
+                "req", "-new", "-newkey", "rsa:2048", "-sha256", "-nodes",
+                "-subj", "/CN=localhost", "-keyout", key.path, "-out", request.path
+            ])
+            try Self.run(Self.openssl, arguments: [
+                "x509", "-req", "-in", request.path, "-CA", caCertificate.path,
+                "-CAkey", caKey.path, "-CAcreateserial", "-days", "1", "-sha256",
+                "-extfile", extensions.path, "-out", certificate.path
+            ])
+        } else {
+            try Self.run(Self.openssl, arguments: [
+                "req", "-x509", "-newkey", "rsa:2048", "-sha256", "-days", "1", "-nodes",
+                "-subj", "/CN=localhost", "-keyout", key.path, "-out", certificate.path
+            ])
+        }
 
         port = try Self.unusedPort()
         baseURL = URL(string: "https://localhost:\(port)/index.html")!
@@ -41,6 +83,12 @@ final class LocalHTTPSServer {
             stop()
             throw error
         }
+    }
+
+    func caCertificate() -> SecCertificate? {
+        let url = directory.appendingPathComponent("ca-certificate.der")
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return SecCertificateCreateWithData(nil, data as CFData)
     }
 
     func stop() {

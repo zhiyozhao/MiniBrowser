@@ -29,6 +29,7 @@ struct WebViewRepresentable: NSViewRepresentable {
         private let onCreateWebView: PopupWebViewFactory
         private let dialogs: JavaScriptDialogHandling
         private let serverTrustSession: ServerTrustSession
+        private let validTrustHandler: ((SecTrust, @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) -> Void)?
         private var observations: [NSKeyValueObservation] = []
         private var lastMainFrameURL: URL?
         private var lastCommittedURL: URL?
@@ -38,11 +39,13 @@ struct WebViewRepresentable: NSViewRepresentable {
         init(tab: BrowserTab,
              onCreateWebView: @escaping PopupWebViewFactory,
              dialogs: JavaScriptDialogHandling? = nil,
-             serverTrustSession: ServerTrustSession? = nil) {
+             serverTrustSession: ServerTrustSession? = nil,
+             validTrustHandler: ((SecTrust, @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) -> Void)? = nil) {
             self.tab = tab
             self.onCreateWebView = onCreateWebView
             self.dialogs = dialogs ?? AppKitJavaScriptDialogs()
             self.serverTrustSession = serverTrustSession ?? .shared
+            self.validTrustHandler = validTrustHandler
             super.init()
 
             let webView = tab.webView
@@ -149,6 +152,14 @@ struct WebViewRepresentable: NSViewRepresentable {
             guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
                   let trust = challenge.protectionSpace.serverTrust else {
                 completionHandler(.performDefaultHandling, nil)
+                return
+            }
+            if serverTrustSession.isValid(trust) {
+                if let validTrustHandler {
+                    validTrustHandler(trust, completionHandler)
+                } else {
+                    completionHandler(.performDefaultHandling, nil)
+                }
                 return
             }
             let site = ServerTrustSession.Site(protectionSpace: challenge.protectionSpace)

@@ -18,6 +18,15 @@ final class ServerTrustSession {
 
     static let shared = ServerTrustSession()
     private var allowedCertificates: [Site: Data] = [:]
+    private let trustEvaluator: (SecTrust) -> Bool
+
+    init(trustEvaluator: @escaping (SecTrust) -> Bool = { SecTrustEvaluateWithError($0, nil) }) {
+        self.trustEvaluator = trustEvaluator
+    }
+
+    func isValid(_ trust: SecTrust) -> Bool {
+        trustEvaluator(trust)
+    }
 
     func allows(site: Site, trust: SecTrust) -> Bool {
         guard let certificate = Self.leafCertificateData(trust) else { return false }
