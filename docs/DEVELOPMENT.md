@@ -1,0 +1,35 @@
+# 开发文档
+
+环境、依赖与重建见 [SETUP.md](../SETUP.md)，项目约束见 [AGENTS.md](../AGENTS.md)。
+
+## 模块与测试
+
+- `MiniBrowserCore`：`AddressResolver` 负责地址栏输入，`BrowserWindowState` 负责单个窗口的标签顺序与选择，`SiteZoomSettings` 负责按规范化域名读写缩放。
+- `MiniBrowser` executable：`BrowserWindowModel` 将纯状态映射到 `BrowserTab` / `WKWebView`，SwiftUI 和 AppKit 负责界面及窗口生命周期，`ZoomStore` 把 Core 的 `Double` 适配为 WebKit 使用的 `CGFloat`。
+- `Tests/MiniBrowserCoreTests` 使用 Swift Testing。测试不创建 WebView、不访问真实网站、不读取用户真实设置；每个设置测试使用唯一 `UserDefaults` suite 并在结束时清理。
+
+核心逻辑修改采用红绿 TDD：先运行能复现问题的测试并确认失败，再实现修改。不要为了通过测试而删除用例、降低断言或加入 skip。
+
+## 行为边界
+
+地址栏保留原有规则：空输入不导航；显式 HTTP(S) URL 直接打开；不含空格且含点的输入补 `https://`；其他输入交给 Bing。站点缩放继续使用 `MiniBrowserZoomLevels`，域名忽略大小写和开头的 `www.`。
+
+`BrowserWindowState` 只存 UUID，不持有 WebView。关闭选中标签时优先选择原位置的后一个标签，末尾则选择前一个；关闭未选中标签不改变选择。正常 UI 关闭最后一个标签仍由窗口层处理，本次拆分没有改变该流程。
+
+## 构建、签名与产物
+
+`Scripts/build-app.sh` 是唯一的 app 组装入口：release 构建、复制可执行文件和图标、写入 tag 版本、用 `DEV X` 签名并校验。找不到证书会直接失败，不再回退 ad-hoc。
+
+`Scripts/version.sh` 用最近 git tag 作为本地 app/DMG 和 CI 的产品版本来源。`Resources/Info.plist` 中的静态版本只是模板；构建只修改 app 内副本。CI 仍按原流程为发布构建写入 `GITHUB_RUN_NUMBER` 作为 bundle build number。
+
+`make package` 和 release workflow 使用相同 DMG 结构：`MiniBrowser.app`、`/Applications` 符号链接、UDZO，资产名为 `MiniBrowser-VERSION.dmg`。不要改变 `com.zhao.minibrowser`、app 名、DMG 模板或 release secrets。
+
+Release 说明由 `Scripts/release-notes.sh` 截取 CHANGELOG 的对应版本段，缺段或空段会失败。这一改动只替换 `gh release create` 的 notes 来源；tag 触发、DEV X 签名、DMG 资产名和 cask URL 格式均不变，因此不影响发布与 Homebrew 兼容。
+
+发布清单：更新 CHANGELOG → `make check` → 提交并推送 main → 打 annotated `vX.Y.Z` tag 并推送 → 等 Release 和 tap 同步完成。版本无需手改 Info.plist；开发任务中不执行推送或打 tag。
+
+## 运行与调试安全
+
+`make run` 只执行本仓库 app 内的二进制，记录其 PID，5 秒后结束并等待该 PID；异常退出时也由 trap 清理。不要用 `killall MiniBrowser`，不要操作用户正在运行的实例或 `/Applications/MiniBrowser.app`。
+
+单元测试不覆盖真实网页加载、UA 指纹或网站兼容性。需要调查网站问题时，应单独记录 URL、导航/重定向过程、UA 和 WebKit 错误，不在本检查流程中访问真实网站。
