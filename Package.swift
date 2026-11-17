@@ -13,6 +13,10 @@ let package = Package(
         .testTarget(
             name: "MiniBrowserCoreTests",
             dependencies: ["MiniBrowserCore"]
+        ),
+        .testTarget(
+            name: "MiniBrowserIntegrationTests",
+            dependencies: ["MiniBrowser", "MiniBrowserCore"]
         )
     ]
 )
