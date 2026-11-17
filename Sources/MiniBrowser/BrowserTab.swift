@@ -1,3 +1,4 @@
+import MiniBrowserCore
 import WebKit
 
 /// 一个标签页：持有一个 WKWebView 及其浏览状态
@@ -66,25 +67,7 @@ final class BrowserTab: ObservableObject, Identifiable {
 
     /// 从地址栏输入加载：合法 URL 直接打开，否则当作搜索词
     func loadAddress() {
-        guard let url = Self.resolve(urlText) else { return }
+        guard let url = AddressResolver.resolve(urlText) else { return }
         webView.load(URLRequest(url: url))
-    }
-
-    static func resolve(_ input: String) -> URL? {
-        let trimmed = input.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return nil }
-        // 已带 scheme（http://、https:// 等）
-        if let url = URL(string: trimmed), let scheme = url.scheme,
-           scheme == "http" || scheme == "https" {
-            return url
-        }
-        // 形如 example.com，补 https://
-        if !trimmed.contains(" "), trimmed.contains("."),
-           let url = URL(string: "https://" + trimmed), url.host != nil {
-            return url
-        }
-        // 否则按搜索处理
-        let q = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? trimmed
-        return URL(string: "https://www.bing.com/search?q=\(q)")
     }
 }

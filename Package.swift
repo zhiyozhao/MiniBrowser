@@ -5,6 +5,14 @@ let package = Package(
     name: "MiniBrowser",
     platforms: [.macOS(.v13)],
     targets: [
-        .executableTarget(name: "MiniBrowser")
+        .target(name: "MiniBrowserCore"),
+        .executableTarget(
+            name: "MiniBrowser",
+            dependencies: ["MiniBrowserCore"]
+        ),
+        .testTarget(
+            name: "MiniBrowserCoreTests",
+            dependencies: ["MiniBrowserCore"]
+        )
     ]
 )
