@@ -5,12 +5,12 @@ public final class SiteZoomSettings {
     public static let storageKey = "MiniBrowserZoomLevels"
 
     private let defaults: UserDefaults
-    private let key: String
+    private let storageKey: String
     private var levels: [String: Double]
 
     public init(defaults: UserDefaults = .standard, key: String = SiteZoomSettings.storageKey) {
         self.defaults = defaults
-        self.key = key
+        storageKey = key
         levels = defaults.dictionary(forKey: key) as? [String: Double] ?? [:]
     }
 
@@ -20,9 +20,9 @@ public final class SiteZoomSettings {
     }
 
     public func set(zoom: Double, for host: String?) {
-        guard let key = Self.normalizedHost(host) else { return }
-        levels[key] = zoom
-        defaults.set(levels, forKey: self.key)
+        guard let hostKey = Self.normalizedHost(host) else { return }
+        levels[hostKey] = zoom
+        defaults.set(levels, forKey: storageKey)
     }
 
     private static func normalizedHost(_ host: String?) -> String? {
