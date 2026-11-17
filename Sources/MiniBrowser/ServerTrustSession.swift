@@ -14,6 +14,13 @@ final class ServerTrustSession {
             host = protectionSpace.host.lowercased()
             port = protectionSpace.port
         }
+
+        init?(url: URL) {
+            guard let host = url.host?.lowercased() else { return nil }
+            scheme = url.scheme?.lowercased() ?? "https"
+            self.host = host
+            port = url.port ?? (scheme == "https" ? 443 : 80)
+        }
     }
 
     static let shared = ServerTrustSession()

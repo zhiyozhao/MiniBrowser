@@ -167,7 +167,9 @@ struct WebViewRepresentable: NSViewRepresentable {
                 completionHandler(.useCredential, URLCredential(trust: trust))
                 return
             }
-            guard let url = lastMainFrameURL ?? webView.url else {
+            guard let url = lastMainFrameURL ?? webView.url,
+                  ServerTrustSession.Site(url: url) == site else {
+                // 子资源证书失败只拒绝该资源，不替换主页面。
                 completionHandler(.cancelAuthenticationChallenge, nil)
                 return
             }
