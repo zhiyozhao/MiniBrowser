@@ -57,6 +57,7 @@ h1 { font-size: 46px; line-height: 1.2; letter-spacing: -.5px; margin: 0; font-w
 }
 .cmd button:hover { background: var(--line); }
 .alt { font-size: 15px; color: var(--mute); }
+.note { font-size: 14px; color: var(--mute); margin: 14px 0 0; max-width: 620px; }
 
 .shot { display: block; margin: 28px auto 0; }
 .shot img { width: 100%; border-radius: 14px; }
