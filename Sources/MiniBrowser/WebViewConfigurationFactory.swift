@@ -6,6 +6,7 @@ enum WebViewConfigurationFactory {
     static let safariApplicationName = "Version/18.0 Safari/605.1.15"
 
     static func configure(_ configuration: WKWebViewConfiguration) {
+        AppEnvironment.prepareDataDirectory()
         configuration.applicationNameForUserAgent = safariApplicationName
     }
 

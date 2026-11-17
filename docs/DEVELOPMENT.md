@@ -7,7 +7,8 @@
 - `MiniBrowserCore`：`AddressResolver` 负责地址栏输入，`BrowserWindowState` 负责单个窗口的标签顺序与选择，`SiteZoomSettings` 负责按规范化域名读写缩放。
 - `MiniBrowser` executable：`BrowserWindowModel` 将纯状态映射到 `BrowserTab` / `WKWebView`，SwiftUI 和 AppKit 负责界面及窗口生命周期，`ZoomStore` 把 Core 的 `Double` 适配为 WebKit 使用的 `CGFloat`。
 - `Tests/MiniBrowserCoreTests` 使用 Swift Testing。测试不创建 WebView、不访问真实网站、不读取用户真实设置；每个设置测试使用唯一 `UserDefaults` suite 并在结束时清理。
-- `Tests/MiniBrowserIntegrationTests` 使用真实 NSWindow/WKWebView 和随机端口本地 HTTP 服务；自签 HTTPS 测试由系统 `/usr/bin/openssl` 生成临时证书并启动测试服，结束后终止进程、删除目录。所有测试不访问外部网站、不登录账号，也不需要辅助功能权限。
+- `Tests/MiniBrowserIntegrationTests` 使用真实 NSWindow/WKWebView 和随机端口本地 HTTP 服务；自签 HTTPS 测试由系统 `/usr/bin/openssl` 生成临时证书并启动测试服，结束后终止进程、删除目录。有效证书用例另建本地 CA 和 CA 签发证书，只把 CA 注入该次 `SecTrust` 评估，不改系统钥匙串。所有测试不访问外部网站、不登录账号，也不需要辅助功能权限。
+- `Scripts/test.sh` 给整个测试进程注入唯一 defaults suite 和 HOME 数据目录，比较真实 `com.zhao.minibrowser.plist` 的前后 SHA-256，并检查无 `MiniBrowserCoreTests.*.plist` 遗留。Core 测试清理时同步执行独立 suite 的 `defaults delete`，避免 cfprefsd 并行重建空 plist。
 
 核心逻辑修改采用红绿 TDD：先运行能复现问题的测试并确认失败，再实现修改。不要为了通过测试而删除用例、降低断言或加入 skip。
 

@@ -12,25 +12,31 @@ lint:
 	bash -n Scripts/build-app.sh
 	bash -n Scripts/version.sh
 	bash -n Scripts/release-notes.sh
+	bash -n Scripts/test.sh
 	Scripts/release-notes.sh 1.0.1 | grep -q '签名'
 
 build:
 	swift build
 
 test:
-	swift test
+	Scripts/test.sh
 
 ## run: 打包 DEV X 签名的 release app，做 5 秒启动冒烟后只关闭该进程
 run:
 	Scripts/build-app.sh
 	@set -eu; \
-	"$(APP)/Contents/MacOS/MiniBrowser" & pid=$$!; \
-	trap 'kill $$pid 2>/dev/null || true; wait $$pid 2>/dev/null || true' EXIT INT TERM; \
+	suite="MiniBrowser.Local.$$"; data="$(CURDIR)/.local/run-data"; pid=""; \
+	cleanup() { \
+		if [ -n "$$pid" ]; then kill "$$pid" 2>/dev/null || true; wait "$$pid" 2>/dev/null || true; fi; \
+		defaults delete "$$suite" >/dev/null 2>&1 || true; \
+		rm -f "$$HOME/Library/Preferences/$$suite.plist"; \
+		rm -rf "$$data"; \
+	}; \
+	trap cleanup EXIT INT TERM; \
+	MINIBROWSER_DEFAULTS_SUITE="$$suite" MINIBROWSER_DATA_DIRECTORY="$$data" \
+		"$(APP)/Contents/MacOS/MiniBrowser" & pid=$$!; \
 	sleep 5; \
 	kill -0 $$pid; \
-	kill $$pid; \
-	wait $$pid 2>/dev/null || true; \
-	trap - EXIT INT TERM; \
 	echo "MiniBrowser launch smoke test passed (5s)"
 
 ## package: 复用发布流程的 .app 构建和 DMG 命令

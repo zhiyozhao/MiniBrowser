@@ -17,7 +17,24 @@ make package     # MiniBrowser.app + MiniBrowser-<最近 tag 版本>.dmg
 make clean       # 清理构建产物
 ```
 
-`make check` 不需要签名、网络或系统隐私权限。`make run` 和 `make package` 需要 DEV X；`make run` 只启动仓库内构建的 `MiniBrowser.app`，不会关闭或重启 `/Applications/MiniBrowser.app`。
+`make check` 不需要签名、外部网络或系统隐私权限。`make run` 和 `make package` 需要 DEV X；`make run` 只启动仓库内构建的 `MiniBrowser.app`，不会关闭或重启 `/Applications/MiniBrowser.app`。
+
+## 测试与本地副本隔离
+
+`make check` 和 `make run` 都自动使用独立 UserDefaults suite 与数据目录，并在结束后清理；不会把测试缩放值写进用户的 `com.zhao.minibrowser.plist`。手工运行副本时可显式指定：
+
+```bash
+MINIBROWSER_DEFAULTS_SUITE=MiniBrowser.Local \
+MINIBROWSER_DATA_DIRECTORY="$PWD/.local/manual" \
+MiniBrowser.app/Contents/MacOS/MiniBrowser
+
+# 等价启动参数
+MiniBrowser.app/Contents/MacOS/MiniBrowser \
+  -defaultsSuite MiniBrowser.Local \
+  -dataDirectory "$PWD/.local/manual"
+```
+
+环境变量优先于启动参数。`cfprefsd` 不随 HOME 隔离，所以偏好必须使用独立 suite；WebKit 数据目录则在首次创建 WebView 前通过 HOME / CFFIXED_USER_HOME 隔离。`Scripts/test.sh` 还会逐字节比较检查前后的真实应用 plist，并检查测试 suite 文件已删除。
 
 产物位于仓库根目录：`MiniBrowser.app`、`MiniBrowser-<版本>.dmg`，临时 DMG 目录为 `dmg/`。这些文件均被 git 忽略。
 

@@ -14,7 +14,7 @@ struct SiteZoomSettingsTests {
     @Test("没有保存值时使用实际大小")
     func defaultZoom() throws {
         let (defaults, suiteName) = try isolatedDefaults()
-        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defer { cleanupTestDefaults(defaults, suiteName: suiteName) }
         let settings = SiteZoomSettings(defaults: defaults)
         #expect(settings.zoom(for: "example.com") == 1.0)
         #expect(settings.zoom(for: nil) == 1.0)
@@ -23,7 +23,7 @@ struct SiteZoomSettingsTests {
     @Test("域名忽略大小写和 www 前缀")
     func normalizedHost() throws {
         let (defaults, suiteName) = try isolatedDefaults()
-        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defer { cleanupTestDefaults(defaults, suiteName: suiteName) }
         let settings = SiteZoomSettings(defaults: defaults)
         settings.set(zoom: 1.4, for: "WWW.Example.COM")
         #expect(settings.zoom(for: "example.com") == 1.4)
@@ -34,7 +34,7 @@ struct SiteZoomSettingsTests {
     @Test("设置写入后由新实例读回")
     func persistence() throws {
         let (defaults, suiteName) = try isolatedDefaults()
-        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defer { cleanupTestDefaults(defaults, suiteName: suiteName) }
         SiteZoomSettings(defaults: defaults).set(zoom: 1.75, for: "example.com")
         let reloaded = SiteZoomSettings(defaults: defaults)
         #expect(reloaded.zoom(for: "example.com") == 1.75)
@@ -45,7 +45,7 @@ struct SiteZoomSettingsTests {
     @Test("无域名时不写入设置")
     func nilHostDoesNotWrite() throws {
         let (defaults, suiteName) = try isolatedDefaults()
-        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defer { cleanupTestDefaults(defaults, suiteName: suiteName) }
         let settings = SiteZoomSettings(defaults: defaults)
         settings.set(zoom: 1.5, for: nil)
         #expect(defaults.dictionary(forKey: SiteZoomSettings.storageKey) == nil)
