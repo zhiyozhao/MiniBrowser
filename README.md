@@ -54,12 +54,7 @@ brew install --cask zhiyozhao/tap/minibrowser
 MiniBrowser 不支持通行密钥（Passkey），依赖第三方 Cookie 的登录也可能失败。
 
 **怎么卸载？**
-```bash
-brew uninstall --cask --zap minibrowser
-rm -rf ~/Library/WebKit/com.zhao.minibrowser ~/Library/Caches/com.zhao.minibrowser \
-       ~/Library/HTTPStorages/com.zhao.minibrowser.binarycookies
-```
-第二行删除网站数据、缓存和 Cookie。
+`brew uninstall --cask --zap minibrowser`，会一并删除网站数据、Cookie、缓存和设置。
 
 ---
 

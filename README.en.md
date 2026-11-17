@@ -54,12 +54,7 @@ No. Every new window opens at 1100 × 700, so you drag it smaller again.
 MiniBrowser doesn't support passkeys, and sign-ins that rely on third-party cookies may fail.
 
 **How do I uninstall it?**
-```bash
-brew uninstall --cask --zap minibrowser
-rm -rf ~/Library/WebKit/com.zhao.minibrowser ~/Library/Caches/com.zhao.minibrowser \
-       ~/Library/HTTPStorages/com.zhao.minibrowser.binarycookies
-```
-The second command removes website data, cache and cookies.
+`brew uninstall --cask --zap minibrowser` removes the app along with its website data, cookies, cache and settings.
 
 ---
 
