@@ -1,29 +1,39 @@
-# MiniBrowser
+<p align="center">
+  <img src="docs/assets/icon-256.png" width="128" height="128" alt="">
+</p>
 
-中文 · [English](README.en.md) · [官网](https://zhiyozhao.github.io/MiniBrowser/) · [安装](#安装)
+<h1 align="center">MiniBrowser</h1>
 
-一个能缩得很小的 macOS 浏览器，和你平时用的浏览器分开。<br>
-把它放在屏幕一角开着一个网页，手上的事照常做。
-
-## 安装
-
-```bash
-brew install --cask zhiyozhao/tap/minibrowser
-```
-
-也可以从 [Releases](https://github.com/zhiyozhao/MiniBrowser/releases/latest) 下载 DMG，把 MiniBrowser 拖进“应用程序”。需要 macOS 13 或更新版本。
-
-用 DMG 安装的话，第一次打开会提示“无法验证开发者”，因为 app 没有经过 Apple 公证。先双击打开一次，再到“系统设置 → 隐私与安全性”底部点“仍要打开”。Homebrew 安装不会遇到这个提示。
-
-## 和普通浏览器的不同
+<p align="center">
+  能缩得很小的 macOS 浏览器，放在屏幕一角开着一个网页。<br>
+  中文 · <a href="README.en.md">English</a> · <a href="https://zhiyozhao.github.io/MiniBrowser/">官网</a>
+</p>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-zh-dark.png">
   <img src="docs/assets/hero-zh-light.png" width="1200" alt="示意场景：左边是一个用灰色色块画出的编辑器窗口，右上角是 MiniBrowser 的真实窗口截图，320 pt 宽，开着一个示例文章页">
 </picture>
 
-- **窗口能缩到 228 × 360 pt。** 越窄按钮越少，最后只剩地址栏；收起的按钮，快捷键照样能用。
-- **和其他浏览器完全隔离。** Cookie、缓存和登录状态都是它自己的。Safari、Chrome 里的账号和历史在这里看不到，这里打开的页面也不会出现在那边。没有账号，也没有统计。
+## 安装
+
+需要 macOS 13 或更新版本。
+
+**用 Homebrew**
+
+```bash
+brew install --cask zhiyozhao/tap/minibrowser
+```
+
+**手动安装**
+
+1. 从 [Releases](https://github.com/zhiyozhao/MiniBrowser/releases/latest) 下载 DMG。
+2. 打开 DMG，把 MiniBrowser 拖进“应用程序”。
+3. 第一次打开时如果提示“无法验证开发者”，先关掉提示，到“系统设置 → 隐私与安全性”，在页面底部点“仍要打开”。
+
+## 特点
+
+- **缩到多窄都能用。** 越窄按钮越少，最窄时只剩地址栏。
+- **自己的一套登录和数据。** 在这里登录的账号和 Cookie 只属于 MiniBrowser，和你每天用的浏览器互不影响。
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/widths-zh-dark.png">
@@ -41,21 +51,23 @@ brew install --cask zhiyozhao/tap/minibrowser
 | `⌘ R` | 刷新 |
 | `⌘ -` / `⌘ =` / `⌘ 0` | 缩小 / 放大 / 恢复原始大小 |
 
-## 有意不做
+窗口太窄、按钮被收起时，快捷键照样能用。
 
-下载、上传文件、跳转到其他 app（如 `mailto:`、微信链接）、摄像头和麦克风、书签和历史记录。点到下载链接时不会有反应。
+## 不支持
+
+下载和上传文件、打开其他 app 的链接、摄像头和麦克风、书签、历史记录。
 
 ## 常见问题
 
 **窗口大小会被记住吗？**
-不会。用 `⌘ N` 新建的窗口都是 1100 × 700，网页弹出的登录、支付窗口是 520 × 640。
+不会。`⌘ N` 新建的窗口都是 1100 × 700。
 
 **有些网站登录不上？**
-MiniBrowser 不支持通行密钥（Passkey），依赖第三方 Cookie 的登录也可能失败。
+部分登录方式用不了，比如通行密钥（Passkey）。
 
 **怎么卸载？**
-`brew uninstall --cask --zap minibrowser`，会一并删除网站数据、Cookie、缓存和设置。
+`brew uninstall --cask --zap minibrowser`，会一起删掉网站数据和设置。手动安装的，把 MiniBrowser 拖到废纸篓。
 
 ---
 
-[MIT 许可证](LICENSE) · [更新记录](CHANGELOG.md) · [开发文档](docs/DEVELOPMENT.md)
+[MIT 许可证](LICENSE) · [更新记录](CHANGELOG.md)

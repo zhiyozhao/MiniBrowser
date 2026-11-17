@@ -1,29 +1,39 @@
-# MiniBrowser
+<p align="center">
+  <img src="docs/assets/icon-256.png" width="128" height="128" alt="">
+</p>
 
-[中文](README.md) · English · [Website](https://zhiyozhao.github.io/MiniBrowser/en/) · [Install](#install)
+<h1 align="center">MiniBrowser</h1>
 
-A macOS browser that can shrink to a very small window, kept apart from the browser you normally use.<br>
-Leave a page open in a corner of the screen and keep working.
-
-## Install
-
-```bash
-brew install --cask zhiyozhao/tap/minibrowser
-```
-
-Or download the DMG from [Releases](https://github.com/zhiyozhao/MiniBrowser/releases/latest) and drag MiniBrowser into Applications. Requires macOS 13 or later. The menus are in Chinese; the toolbar is icons only.
-
-If you install from the DMG, macOS says it can't verify the developer the first time you open it, because the app isn't notarized by Apple. Open it once, then go to System Settings → Privacy & Security and click "Open Anyway" near the bottom. Installing with Homebrew avoids this.
-
-## How it differs from a normal browser
+<p align="center">
+  A macOS browser that shrinks to a very small window, so a page can stay open in a corner of your screen.<br>
+  <a href="README.md">中文</a> · English · <a href="https://zhiyozhao.github.io/MiniBrowser/en/">Website</a>
+</p>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-en-dark.png">
   <img src="docs/assets/hero-en-light.png" width="1200" alt="Mock-up: on the left, an editor window drawn with grey blocks; in the top-right corner, a real screenshot of a 320 pt wide MiniBrowser window showing a sample article">
 </picture>
 
-- **The window shrinks to 228 × 360 pt.** The narrower it gets, the fewer buttons it shows, down to just the address bar. Shortcuts still work for the buttons that fold away.
-- **Fully separate from your other browsers.** Its cookies, cache and sign-ins are its own. It can't see your accounts or history in Safari or Chrome, and pages opened here don't show up there. No accounts, no analytics.
+## Install
+
+Requires macOS 13 or later. The menus are in Chinese; the toolbar is icons only.
+
+**With Homebrew**
+
+```bash
+brew install --cask zhiyozhao/tap/minibrowser
+```
+
+**By hand**
+
+1. Download the DMG from [Releases](https://github.com/zhiyozhao/MiniBrowser/releases/latest).
+2. Open the DMG and drag MiniBrowser into Applications.
+3. If macOS says it can't verify the developer the first time you open it, close the message, go to System Settings → Privacy & Security, and click "Open Anyway" near the bottom.
+
+## Features
+
+- **Usable at any width.** The narrower the window, the fewer buttons it shows, down to just the address bar.
+- **Its own sign-ins and data.** Accounts and cookies in MiniBrowser belong to MiniBrowser alone and don't touch the browser you use every day.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/widths-en-dark.png">
@@ -41,21 +51,23 @@ If you install from the DMG, macOS says it can't verify the developer the first 
 | `⌘ R` | Reload |
 | `⌘ -` / `⌘ =` / `⌘ 0` | Zoom out / Zoom in / Actual size |
 
-## Left out on purpose
+Shortcuts keep working when a narrow window hides their buttons.
 
-Downloads, file uploads, opening other apps (such as `mailto:` links), camera and microphone, bookmarks and history. Clicking a download link does nothing.
+## Not supported
+
+Downloading and uploading files, links that open other apps, camera and microphone, bookmarks, history.
 
 ## FAQ
 
 **Does it remember the window size?**
-No. Windows opened with `⌘ N` are always 1100 × 700; sign-in and payment pop-ups opened by a page are 520 × 640.
+No. Windows opened with `⌘ N` are always 1100 × 700.
 
 **Some sites won't let me sign in?**
-MiniBrowser doesn't support passkeys, and sign-ins that rely on third-party cookies may fail.
+Some sign-in methods don't work, such as passkeys.
 
 **How do I uninstall it?**
-`brew uninstall --cask --zap minibrowser` removes the app along with its website data, cookies, cache and settings.
+`brew uninstall --cask --zap minibrowser` also removes website data and settings. If you installed it by hand, drag MiniBrowser to the Trash.
 
 ---
 
-[MIT License](LICENSE) · [Changelog](CHANGELOG.md) · [Development notes](docs/DEVELOPMENT.md)
+[MIT License](LICENSE) · [Changelog](CHANGELOG.md)

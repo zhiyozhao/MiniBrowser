@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>MiniBrowser: a macOS browser that can get very small</title>
-<meta name="description" content="MiniBrowser is a macOS browser that shrinks to a very small window and stays apart from your everyday browser. Leave a page open in a corner of the screen and keep working.">
+<meta name="description" content="A macOS browser that shrinks to a very small window, so a page can stay open in a corner of your screen.">
 <link rel="alternate" hreflang="zh-CN" href="https://zhiyozhao.github.io/MiniBrowser/">
 <link rel="alternate" hreflang="en" href="https://zhiyozhao.github.io/MiniBrowser/en/">
 <link rel="icon" type="image/png" href="../assets/icon-64.png">
@@ -13,41 +13,29 @@
 <link rel="stylesheet" href="../site.css">
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <a class="brand" href="./"><img src="../assets/icon-64.png" alt="">MiniBrowser</a>
-    <nav>
-      <a href="../" hreflang="zh-CN" lang="zh-CN">中文</a>
-      <a href="https://github.com/zhiyozhao/MiniBrowser">GitHub</a>
-      <a class="nav-install" href="#install">Install</a>
-    </nav>
-  </header>
+<header class="top">
+  <div class="wrap">
+    <a class="icon-link" href="https://github.com/zhiyozhao/MiniBrowser" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    <a class="icon-link" href="../" hreflang="zh-CN" lang="zh-CN" aria-label="中文" title="中文">中</a>
+  </div>
+</header>
 
-  <main>
-    <div class="hero">
-      <h1>A browser that can get very small</h1>
-      <p class="lede">MiniBrowser is a macOS browser kept apart from the one you normally use. Leave a page open in a corner of the screen and keep working.</p>
-    </div>
-
-    <section id="install" class="install">
-      <h2>Install</h2>
-      <div class="install-row">
-        <div class="cmd"><code id="cmd">brew install --cask zhiyozhao/tap/minibrowser</code><button type="button" id="copy">Copy</button></div>
-        <span class="alt">or <a href="https://github.com/zhiyozhao/MiniBrowser/releases/latest">download the DMG</a> · macOS 13 or later</span>
-      </div>
-      <p class="note">The first time you open the DMG version, macOS says it can't verify the developer. Open it once, then click "Open Anyway" at the bottom of System Settings → Privacy &amp; Security.</p>
-    </section>
-
-    <picture class="shot">
+<main>
+  <div class="hero">
+    <h1>MiniBrowser</h1>
+    <p>A macOS browser that shrinks to a very small window, so a page can stay open in a corner of your screen.</p>
+    <picture>
       <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="../assets/corner-en-dark.png" width="640" height="720">
       <source media="(max-width: 720px)" srcset="../assets/corner-en-light.png" width="640" height="720">
       <source media="(prefers-color-scheme: dark)" srcset="../assets/hero-en-dark.png">
       <img src="../assets/hero-en-light.png" width="1200" height="720" alt="Mock-up: on the left, an editor window drawn with grey blocks; on the right, a real screenshot of a 320 pt wide MiniBrowser window showing a sample article">
     </picture>
+  </div>
 
-    <section class="point">
-      <h2>Narrower, simpler</h2>
-      <p>The window shrinks to 228 × 360 pt. The narrower it gets, the fewer buttons it shows, down to just the address bar. Shortcuts still work for the buttons that fold away.</p>
+  <div class="wrap">
+    <section>
+      <h2>Usable at any width</h2>
+      <p class="lead">The narrower the window, the fewer buttons it shows, down to just the address bar.</p>
       <picture class="shot">
         <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="../assets/bars-en-dark.png" width="560" height="380">
         <source media="(max-width: 720px)" srcset="../assets/bars-en-light.png" width="560" height="380">
@@ -56,24 +44,33 @@
       </picture>
     </section>
 
-    <div class="cols">
-      <div>
-        <h2>Fully separate from your other browsers</h2>
-        <p>Its cookies, cache and sign-ins are its own. It can't see your accounts or history in Safari or Chrome, and pages opened here don't show up there. No accounts, no analytics.</p>
-      </div>
-      <div>
-        <h2>Left out on purpose</h2>
-        <p>Downloads, file uploads, opening other apps, camera and microphone, bookmarks and history. Clicking a download link does nothing.</p>
-      </div>
-    </div>
-  </main>
+    <section>
+      <h2>Its own sign-ins and data</h2>
+      <p class="lead">Accounts and cookies in MiniBrowser belong to MiniBrowser alone and don't touch the browser you use every day.</p>
+    </section>
 
-  <footer>
-    <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/README.en.md#shortcuts">Shortcuts</a>
-    <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/CHANGELOG.md">Changelog</a>
-    <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/LICENSE">MIT License</a>
-  </footer>
-</div>
+    <section id="install">
+      <h2>Install</h2>
+      <p class="lead">Requires macOS 13 or later. The menus are in Chinese; the toolbar is icons only.</p>
+      <div class="ways">
+        <div class="way">
+          <h3>With Homebrew</h3>
+          <div class="cmd"><code id="cmd">brew install --cask zhiyozhao/tap/minibrowser</code><button type="button" id="copy">Copy</button></div>
+          <p class="req">Open it right away; you won't see the “can't verify the developer” message.</p>
+        </div>
+        <div class="way">
+          <h3>By hand</h3>
+          <ol>
+          <li>Download the <a href="https://github.com/zhiyozhao/MiniBrowser/releases/latest">MiniBrowser DMG</a>.</li>
+          <li>Open the DMG and drag MiniBrowser into Applications.</li>
+          <li>If macOS says it can't verify the developer the first time you open it, close the message, go to System Settings → Privacy &amp; Security, and click “Open Anyway” near the bottom.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+    <div class="end"></div>
+  </div>
+</main>
 <script>
   document.getElementById('copy').addEventListener('click', function () {
     var button = this;

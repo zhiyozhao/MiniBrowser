@@ -5,9 +5,6 @@
   --mute: #6b6a67;
   --line: #e3e1dc;
   --code: #ffffff;
-  --link: #1d1d1f;
-  --max: 1200px;
-  --text: 640px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -16,7 +13,6 @@
     --mute: #9a999e;
     --line: #2c2c2f;
     --code: #1f1f21;
-    --link: #ececee;
   }
 }
 * { box-sizing: border-box; }
@@ -28,70 +24,72 @@ body {
   font: 17px/1.65 -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
-a { color: var(--link); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 img { display: block; max-width: 100%; height: auto; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
 
-.wrap { max-width: var(--max); margin: 0 auto; padding: 0 32px; }
-
-header.top { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; text-decoration: none; }
-.brand img { width: 28px; height: 28px; }
-nav { display: flex; gap: 22px; font-size: 15px; }
-nav a { text-decoration: none; color: var(--mute); }
-nav a:hover { color: var(--fg); }
-nav a.nav-install { color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; background: var(--code); }
-nav a.nav-install:hover { border-color: var(--mute); }
-nav { align-items: center; }
-
-.hero { padding: 64px 0 36px; max-width: 760px; }
-h1 { font-size: 46px; line-height: 1.2; letter-spacing: -.5px; margin: 0; font-weight: 650; }
-.lede { font-size: 20px; color: var(--mute); margin: 18px 0 0; }
-
-.install { padding: 0 0 8px; scroll-margin-top: 24px; }
-.install h2 { font-size: 17px; font-weight: 600; margin: 0 0 12px; }
-.install-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; }
-.cmd {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--code); border: 1px solid var(--line); border-radius: 10px;
-  padding: 10px 10px 10px 16px; max-width: 100%;
+/* 右上角两个图标 */
+.top { position: absolute; top: 0; right: 0; left: 0; z-index: 1; }
+.top .wrap { display: flex; justify-content: flex-end; gap: 6px; padding-top: 18px; }
+.icon-link {
+  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px;
+  color: var(--mute); text-decoration: none; font-size: 14px; font-weight: 600;
 }
-.cmd code { font: 15px/1.4 ui-monospace, "SF Mono", Menlo, monospace; white-space: nowrap; overflow-x: auto; }
+.icon-link:hover { color: var(--fg); background: var(--line); }
+.icon-link svg { width: 20px; height: 20px; fill: currentColor; }
+
+/* 首屏：一句介绍 + 展示图，占满一屏 */
+.hero {
+  min-height: 100vh; min-height: 100svh;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: 72px 32px 40px; text-align: center;
+}
+.hero h1 { margin: 0; font-size: 44px; line-height: 1.2; letter-spacing: -.5px; font-weight: 650; }
+.hero p { margin: 10px 0 0; font-size: 20px; color: var(--mute); }
+.hero picture { display: block; margin-top: 36px; }
+.hero img {
+  width: auto; max-width: min(1200px, 100%);
+  max-height: calc(100svh - 260px); min-height: 280px; object-fit: contain;
+  border-radius: 14px;
+}
+
+section { padding: 88px 0 0; }
+section h2 { font-size: 28px; line-height: 1.3; letter-spacing: -.2px; margin: 0; font-weight: 650; }
+section .lead { max-width: 760px; color: var(--mute); margin: 12px 0 0; }
+section .shot { display: block; margin-top: 32px; }
+section .shot img { width: 100%; border-radius: 14px; }
+
+/* 安装 */
+.ways { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 28px; }
+.way { border: 1px solid var(--line); border-radius: 14px; padding: 24px 26px; background: var(--code); }
+.way h3 { margin: 0 0 14px; font-size: 18px; font-weight: 600; }
+.way ol { margin: 0; padding-left: 1.3em; }
+.way li + li { margin-top: 6px; }
+.cmd { display: flex; align-items: flex-start; gap: 12px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 10px 10px 14px; background: var(--bg); }
+.cmd code { flex: 1; font: 15px/1.5 ui-monospace, "SF Mono", Menlo, monospace; overflow-wrap: break-word; min-width: 0; padding-top: 2px; }
 .cmd button {
   font: inherit; font-size: 14px; color: var(--fg); background: transparent;
   border: 1px solid var(--line); border-radius: 7px; padding: 3px 10px; cursor: pointer; flex: none;
 }
 .cmd button:hover { background: var(--line); }
-.alt { font-size: 15px; color: var(--mute); }
-.note { font-size: 14px; color: var(--mute); margin: 14px 0 0; max-width: 620px; }
+.req { color: var(--mute); font-size: 15px; margin: 18px 0 0; }
 
-.shot { display: block; margin: 28px auto 0; }
-.shot img { width: 100%; border-radius: 14px; }
-
-section.point { padding: 96px 0 0; }
-section.point h2 { font-size: 28px; line-height: 1.3; letter-spacing: -.2px; margin: 0; font-weight: 650; }
-section.point p { max-width: var(--text); color: var(--mute); margin: 14px 0 0; }
-section.point .shot { margin-top: 36px; }
-
-.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; padding-top: 96px; }
-.cols h2 { font-size: 22px; margin: 0; font-weight: 650; }
-.cols p { color: var(--mute); margin: 10px 0 0; }
-
-footer { margin-top: 120px; border-top: 1px solid var(--line); padding: 28px 0 48px; font-size: 14px; color: var(--mute); display: flex; flex-wrap: wrap; gap: 8px 22px; }
-footer a { color: var(--mute); }
+.end { height: 96px; }
 
 @media (max-width: 720px) {
   body { font-size: 16px; }
   .wrap { padding: 0 20px; }
-  header.top { padding: 16px 0; }
-  nav { gap: 16px; }
-  .hero { padding: 32px 0 24px; }
-  h1 { font-size: 32px; }
-  .lede { font-size: 17px; }
-  .cmd { align-items: flex-start; }
-  .cmd code { font-size: 13px; white-space: normal; overflow-wrap: break-word; overflow-x: visible; }
-  .shot img { border-radius: 10px; }
-  section.point { padding-top: 64px; }
-  section.point h2 { font-size: 23px; }
-  .cols { grid-template-columns: 1fr; gap: 36px; padding-top: 64px; }
-  footer { margin-top: 80px; }
+  .top .wrap { padding-top: 12px; }
+  .hero { padding: 64px 20px 28px; }
+  .hero h1 { font-size: 34px; }
+  .hero p { font-size: 17px; }
+  .hero picture { margin-top: 24px; }
+  .hero img { max-height: calc(100svh - 230px); border-radius: 10px; }
+  section { padding-top: 64px; }
+  section h2 { font-size: 24px; }
+  section .shot img { border-radius: 10px; }
+  .ways { grid-template-columns: 1fr; gap: 16px; }
+  .way { padding: 20px; }
+  .cmd code { font-size: 13px; }
+  .end { height: 64px; }
 }

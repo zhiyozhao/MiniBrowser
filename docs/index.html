@@ -5,49 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>MiniBrowser：能缩得很小的 macOS 浏览器</title>
-<meta name="description" content="MiniBrowser 是一个能缩得很小、和日常浏览器分开的 macOS 浏览器。放在屏幕一角开着一个网页，手上的事照常做。">
-<link rel="alternate" hreflang="en" href="https://zhiyozhao.github.io/MiniBrowser/en/">
+<meta name="description" content="能缩得很小的 macOS 浏览器，放在屏幕一角开着一个网页。">
 <link rel="alternate" hreflang="zh-CN" href="https://zhiyozhao.github.io/MiniBrowser/">
+<link rel="alternate" hreflang="en" href="https://zhiyozhao.github.io/MiniBrowser/en/">
 <link rel="icon" type="image/png" href="assets/icon-64.png">
 <link rel="apple-touch-icon" href="assets/icon-256.png">
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <a class="brand" href="./"><img src="assets/icon-64.png" alt="">MiniBrowser</a>
-    <nav>
-      <a href="en/" hreflang="en" lang="en">English</a>
-      <a href="https://github.com/zhiyozhao/MiniBrowser">GitHub</a>
-      <a class="nav-install" href="#install">安装</a>
-    </nav>
-  </header>
+<header class="top">
+  <div class="wrap">
+    <a class="icon-link" href="https://github.com/zhiyozhao/MiniBrowser" aria-label="GitHub" title="GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    <a class="icon-link" href="en/" hreflang="en" lang="en" aria-label="English" title="English">EN</a>
+  </div>
+</header>
 
-  <main>
-    <div class="hero">
-      <h1>能缩得很小的浏览器</h1>
-      <p class="lede">MiniBrowser 是一个 macOS 浏览器，和你平时用的浏览器分开。放在屏幕一角开着一个网页，手上的事照常做。</p>
-    </div>
-
-    <section id="install" class="install">
-      <h2>安装</h2>
-      <div class="install-row">
-        <div class="cmd"><code id="cmd">brew install --cask zhiyozhao/tap/minibrowser</code><button type="button" id="copy">复制</button></div>
-        <span class="alt">或者 <a href="https://github.com/zhiyozhao/MiniBrowser/releases/latest">下载 DMG</a> · macOS 13 及以上</span>
-      </div>
-      <p class="note">DMG 版第一次打开会提示“无法验证开发者”：先双击打开一次，再到“系统设置 → 隐私与安全性”底部点“仍要打开”。</p>
-    </section>
-
-    <picture class="shot">
+<main>
+  <div class="hero">
+    <h1>MiniBrowser</h1>
+    <p>能缩得很小的 macOS 浏览器，放在屏幕一角开着一个网页。</p>
+    <picture>
       <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="assets/corner-zh-dark.png" width="640" height="720">
       <source media="(max-width: 720px)" srcset="assets/corner-zh-light.png" width="640" height="720">
       <source media="(prefers-color-scheme: dark)" srcset="assets/hero-zh-dark.png">
       <img src="assets/hero-zh-light.png" width="1200" height="720" alt="示意场景：左边是一个用灰色色块画出的编辑器窗口，右边是 MiniBrowser 的真实窗口截图，320 pt 宽，开着一个示例文章页">
     </picture>
+  </div>
 
-    <section class="point">
-      <h2>越窄，越简单</h2>
-      <p>窗口能缩到 228 × 360 pt。越窄按钮越少，最后只剩地址栏；收起的按钮，快捷键照样能用。</p>
+  <div class="wrap">
+    <section>
+      <h2>缩到多窄都能用</h2>
+      <p class="lead">越窄按钮越少，最窄时只剩地址栏。</p>
       <picture class="shot">
         <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="assets/bars-zh-dark.png" width="560" height="380">
         <source media="(max-width: 720px)" srcset="assets/bars-zh-light.png" width="560" height="380">
@@ -56,24 +44,33 @@
       </picture>
     </section>
 
-    <div class="cols">
-      <div>
-        <h2>和其他浏览器完全隔离</h2>
-        <p>Cookie、缓存和登录状态都是它自己的。Safari、Chrome 里的账号和历史在这里看不到，这里打开的页面也不会出现在那边。没有账号，也没有统计。</p>
-      </div>
-      <div>
-        <h2>有意不做</h2>
-        <p>下载、上传文件、跳转到其他 app、摄像头和麦克风、书签和历史记录。点到下载链接时不会有反应。</p>
-      </div>
-    </div>
-  </main>
+    <section>
+      <h2>自己的一套登录和数据</h2>
+      <p class="lead">在 MiniBrowser 里登录的账号和 Cookie 只属于它自己，和你每天用的浏览器互不影响。</p>
+    </section>
 
-  <footer>
-    <a href="https://github.com/zhiyozhao/MiniBrowser#快捷键">快捷键</a>
-    <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/CHANGELOG.md">更新记录</a>
-    <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/LICENSE">MIT 许可证</a>
-  </footer>
-</div>
+    <section id="install">
+      <h2>安装</h2>
+      <p class="lead">需要 macOS 13 或更新版本。</p>
+      <div class="ways">
+        <div class="way">
+          <h3>用 Homebrew</h3>
+          <div class="cmd"><code id="cmd">brew install --cask zhiyozhao/tap/minibrowser</code><button type="button" id="copy">复制</button></div>
+          <p class="req">装好后直接打开，不会出现“无法验证开发者”的提示。</p>
+        </div>
+        <div class="way">
+          <h3>手动安装</h3>
+          <ol>
+          <li>下载 <a href="https://github.com/zhiyozhao/MiniBrowser/releases/latest">MiniBrowser 的 DMG</a>。</li>
+          <li>打开 DMG，把 MiniBrowser 拖进“应用程序”。</li>
+          <li>第一次打开时如果提示“无法验证开发者”，先关掉提示，到“系统设置 → 隐私与安全性”，在页面底部点“仍要打开”。</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+    <div class="end"></div>
+  </div>
+</main>
 <script>
   document.getElementById('copy').addEventListener('click', function () {
     var button = this;
