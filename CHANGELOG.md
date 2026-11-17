@@ -4,6 +4,7 @@
 
 ### 修复
 
+- 网页 alert、confirm、prompt 使用原生 sheet，不再静默丢失结果。
 - `window.open` 和 `target=_blank` 在新的小窗口内打开，保留登录弹窗的 opener、POST 数据和关闭链路。
 - 所有网站统一使用与 WebKit 版本一致的 Safari User-Agent，不再按域名切换。
 

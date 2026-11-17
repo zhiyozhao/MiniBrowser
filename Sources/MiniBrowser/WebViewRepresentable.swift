@@ -25,11 +25,15 @@ struct WebViewRepresentable: NSViewRepresentable {
     final class Coordinator: NSObject, WKUIDelegate, WKNavigationDelegate {
         private let tab: BrowserTab
         private let onCreateWebView: PopupWebViewFactory
+        private let dialogs: JavaScriptDialogHandling
         private var observations: [NSKeyValueObservation] = []
 
-        init(tab: BrowserTab, onCreateWebView: @escaping PopupWebViewFactory) {
+        init(tab: BrowserTab,
+             onCreateWebView: @escaping PopupWebViewFactory,
+             dialogs: JavaScriptDialogHandling = AppKitJavaScriptDialogs()) {
             self.tab = tab
             self.onCreateWebView = onCreateWebView
+            self.dialogs = dialogs
             super.init()
 
             let webView = tab.webView
@@ -58,6 +62,28 @@ struct WebViewRepresentable: NSViewRepresentable {
                     DispatchQueue.main.async { self?.tab.isLoading = wv.isLoading }
                 },
             ]
+        }
+
+        func webView(_ webView: WKWebView,
+                     runJavaScriptAlertPanelWithMessage message: String,
+                     initiatedByFrame frame: WKFrameInfo,
+                     completionHandler: @escaping () -> Void) {
+            dialogs.showAlert(message, in: webView, completion: completionHandler)
+        }
+
+        func webView(_ webView: WKWebView,
+                     runJavaScriptConfirmPanelWithMessage message: String,
+                     initiatedByFrame frame: WKFrameInfo,
+                     completionHandler: @escaping (Bool) -> Void) {
+            dialogs.showConfirm(message, in: webView, completion: completionHandler)
+        }
+
+        func webView(_ webView: WKWebView,
+                     runJavaScriptTextInputPanelWithPrompt prompt: String,
+                     defaultText: String?,
+                     initiatedByFrame frame: WKFrameInfo,
+                     completionHandler: @escaping (String?) -> Void) {
+            dialogs.showPrompt(prompt, defaultText: defaultText, in: webView, completion: completionHandler)
         }
 
         /// 页面加载完成后再应用一次，确保缩放生效
