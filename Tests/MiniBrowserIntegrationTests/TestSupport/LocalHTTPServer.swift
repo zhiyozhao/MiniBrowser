@@ -155,7 +155,7 @@ final class LocalHTTPServer: @unchecked Sendable {
     }
 }
 
-private final class LockedResumption: @unchecked Sendable {
+final class LockedResumption: @unchecked Sendable {
     private let lock = NSLock()
     private var continuation: CheckedContinuation<Void, Error>?
 

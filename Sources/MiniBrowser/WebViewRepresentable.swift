@@ -22,20 +22,29 @@ struct WebViewRepresentable: NSViewRepresentable {
         Coordinator(tab: tab, onCreateWebView: onCreateWebView)
     }
 
+    @MainActor
     final class Coordinator: NSObject, WKUIDelegate, WKNavigationDelegate {
         private let tab: BrowserTab
         private let onCreateWebView: PopupWebViewFactory
         private let dialogs: JavaScriptDialogHandling
+        private let serverTrustSession: ServerTrustSession
         private var observations: [NSKeyValueObservation] = []
+        private var lastMainFrameURL: URL?
+        private var pendingCertificate: (site: ServerTrustSession.Site, trust: SecTrust, url: URL)?
 
         init(tab: BrowserTab,
              onCreateWebView: @escaping PopupWebViewFactory,
-             dialogs: JavaScriptDialogHandling = AppKitJavaScriptDialogs()) {
+             dialogs: JavaScriptDialogHandling? = nil,
+             serverTrustSession: ServerTrustSession? = nil) {
             self.tab = tab
             self.onCreateWebView = onCreateWebView
-            self.dialogs = dialogs
+            self.dialogs = dialogs ?? AppKitJavaScriptDialogs()
+            self.serverTrustSession = serverTrustSession ?? .shared
             super.init()
 
+            tab.certificateContinueHandler = { [weak self] in
+                self?.continueCertificate()
+            }
             let webView = tab.webView
             observations = [
                 webView.observe(\.title) { [weak self] wv, _ in
@@ -84,6 +93,46 @@ struct WebViewRepresentable: NSViewRepresentable {
                      initiatedByFrame frame: WKFrameInfo,
                      completionHandler: @escaping (String?) -> Void) {
             dialogs.showPrompt(prompt, defaultText: defaultText, in: webView, completion: completionHandler)
+        }
+
+        func webView(_ webView: WKWebView,
+                     decidePolicyFor navigationAction: WKNavigationAction,
+                     decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            if navigationAction.targetFrame?.isMainFrame == true {
+                lastMainFrameURL = navigationAction.request.url
+            }
+            decisionHandler(.allow)
+        }
+
+        func webView(_ webView: WKWebView,
+                     didReceive challenge: URLAuthenticationChallenge,
+                     completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+            guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+                  let trust = challenge.protectionSpace.serverTrust else {
+                completionHandler(.performDefaultHandling, nil)
+                return
+            }
+            let site = ServerTrustSession.Site(protectionSpace: challenge.protectionSpace)
+            if serverTrustSession.allows(site: site, trust: trust) {
+                completionHandler(.useCredential, URLCredential(trust: trust))
+                return
+            }
+            guard let url = lastMainFrameURL ?? webView.url else {
+                completionHandler(.cancelAuthenticationChallenge, nil)
+                return
+            }
+            pendingCertificate = (site, trust, url)
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            DispatchQueue.main.async { [weak self] in
+                self?.tab.showCertificateError(host: site.host, url: url)
+            }
+        }
+
+        private func continueCertificate() {
+            guard let pendingCertificate else { return }
+            self.pendingCertificate = nil
+            serverTrustSession.allow(site: pendingCertificate.site, trust: pendingCertificate.trust)
+            tab.webView.load(URLRequest(url: pendingCertificate.url))
         }
 
         /// 页面加载完成后再应用一次，确保缩放生效
