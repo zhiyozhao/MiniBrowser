@@ -16,12 +16,10 @@ final class BrowserTab: ObservableObject, Identifiable {
     private static let maxZoom: CGFloat = 2.0
     private static let zoomStep: CGFloat = 0.1
 
-    init(url: URL? = nil) {
-        webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+    init(url: URL? = nil, configuration: WKWebViewConfiguration = WebViewConfigurationFactory.make()) {
+        WebViewConfigurationFactory.configure(configuration)
+        webView = WKWebView(frame: .zero, configuration: configuration)
         webView.allowsMagnification = true // 触控板双指缩放
-        // 部分网站（如B站）对 Safari/WebKit 系 UA 做降级处理，只有 Chrome UA 才能获得完整体验
-        webView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-            + "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
         if let url {
             urlText = url.absoluteString
             webView.load(URLRequest(url: url))

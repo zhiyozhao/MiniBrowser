@@ -14,6 +14,8 @@
 
 地址栏保留原有规则：空输入不导航；显式 HTTP(S) URL 直接打开；不含空格且含点的输入补 `https://`；其他输入交给 Bing。站点缩放继续使用 `MiniBrowserZoomLevels`，域名忽略大小写和开头的 `www.`。
 
+UA 对所有网站统一使用 Safari 身份。实现选择 `applicationNameForUserAgent = "Version/18.0 Safari/605.1.15"`，而不是维护一份完整 UA：WKWebView 会继续提供真实系统和 AppleWebKit 版本，只补上 Safari 识别段，避免完整伪造在系统升级后长期失配，也不存在按域名切换造成的子资源身份错位。
+
 `BrowserWindowState` 只存 UUID，不持有 WebView。关闭选中标签时优先选择原位置的后一个标签，末尾则选择前一个；关闭未选中标签不改变选择。正常 UI 关闭最后一个标签仍由窗口层处理，本次拆分没有改变该流程。
 
 ## 构建、签名与产物
