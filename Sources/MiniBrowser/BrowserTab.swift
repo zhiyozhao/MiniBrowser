@@ -73,8 +73,8 @@ final class BrowserTab: ObservableObject, Identifiable {
         webView.load(URLRequest(url: url))
     }
 
-    func showCertificateError(host: String, url: URL) {
-        webView.loadHTMLString(BrowserErrorPage.certificate(host: host), baseURL: url)
+    func showCertificateError(host: String, url: URL, token: UUID) {
+        webView.loadHTMLString(BrowserErrorPage.certificate(host: host, token: token), baseURL: url)
     }
 
     func showWebContentError() {

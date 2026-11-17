@@ -1,16 +1,16 @@
 import Foundation
 
 enum BrowserErrorPage {
-    static func certificate(host: String) -> String {
+    static func certificate(host: String, token: UUID) -> String {
         page(
             title: "证书无效",
             heading: "无法安全连接",
             message: "\(host) 的证书无效。继续后仅在本次会话中对此站点放行。",
             button: """
-            <button id="continue">仍然继续</button>
+            <button id="continue" data-continue-url="minibrowser://continue-certificate/\(token.uuidString)">仍然继续</button>
             <script>
-            document.getElementById('continue').addEventListener('click', () => {
-                window.location.href = 'minibrowser://continue-certificate';
+            document.getElementById('continue').addEventListener('click', event => {
+                window.location.href = event.currentTarget.getAttribute('data-continue-url');
             });
             </script>
             """

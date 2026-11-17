@@ -34,7 +34,15 @@ struct WebViewRepresentable: NSViewRepresentable {
         private var lastMainFrameURL: URL?
         private var lastCommittedURL: URL?
         private var recoveryState = WebContentRecoveryState()
-        private var pendingCertificate: (site: ServerTrustSession.Site, trust: SecTrust, url: URL)?
+        private struct PendingCertificate {
+            let token = UUID()
+            let site: ServerTrustSession.Site
+            let trust: SecTrust
+            let url: URL
+        }
+        private var pendingCertificate: PendingCertificate?
+        private var activeCertificateErrorToken: UUID?
+        private var isLoadingCertificateErrorPage = false
 
         init(tab: BrowserTab,
              onCreateWebView: @escaping PopupWebViewFactory,
@@ -110,8 +118,10 @@ struct WebViewRepresentable: NSViewRepresentable {
                      decidePolicyFor navigationAction: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             let url = navigationAction.request.url
-            if url?.scheme?.lowercased() == "minibrowser", url?.host == "continue-certificate" {
-                continueCertificate()
+            if url?.scheme?.lowercased() == "minibrowser" {
+                if url?.host == "continue-certificate" {
+                    continueCertificate(token: UUID(uuidString: url?.lastPathComponent ?? ""))
+                }
                 decisionHandler(.cancel)
                 return
             }
@@ -120,7 +130,10 @@ struct WebViewRepresentable: NSViewRepresentable {
                 return
             }
             if navigationAction.targetFrame?.isMainFrame == true {
-                lastMainFrameURL = navigationAction.request.url
+                if !isLoadingCertificateErrorPage {
+                    clearPendingCertificate()
+                }
+                lastMainFrameURL = url
             }
             decisionHandler(.allow)
         }
@@ -173,22 +186,36 @@ struct WebViewRepresentable: NSViewRepresentable {
                 completionHandler(.cancelAuthenticationChallenge, nil)
                 return
             }
-            pendingCertificate = (site, trust, url)
+            let pending = PendingCertificate(site: site, trust: trust, url: url)
+            pendingCertificate = pending
+            activeCertificateErrorToken = pending.token
+            isLoadingCertificateErrorPage = true
             completionHandler(.cancelAuthenticationChallenge, nil)
             DispatchQueue.main.async { [weak self] in
-                self?.tab.showCertificateError(host: site.host, url: url)
+                guard let self, self.pendingCertificate?.token == pending.token else { return }
+                self.tab.showCertificateError(host: site.host, url: url, token: pending.token)
             }
         }
 
-        private func continueCertificate() {
-            guard let pendingCertificate else { return }
-            self.pendingCertificate = nil
+        private func clearPendingCertificate() {
+            pendingCertificate = nil
+            activeCertificateErrorToken = nil
+            isLoadingCertificateErrorPage = false
+        }
+
+        private func continueCertificate(token: UUID?) {
+            guard let token,
+                  activeCertificateErrorToken == token,
+                  let pendingCertificate,
+                  pendingCertificate.token == token else { return }
+            clearPendingCertificate()
             serverTrustSession.allow(site: pendingCertificate.site, trust: pendingCertificate.trust)
             tab.webView.load(URLRequest(url: pendingCertificate.url))
         }
 
         /// 页面加载完成后再应用一次，确保缩放生效
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            isLoadingCertificateErrorPage = false
             lastCommittedURL = webView.url
             tab.applySiteZoom()
         }
