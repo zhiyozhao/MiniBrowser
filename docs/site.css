@@ -39,12 +39,17 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 nav { display: flex; gap: 22px; font-size: 15px; }
 nav a { text-decoration: none; color: var(--mute); }
 nav a:hover { color: var(--fg); }
+nav a.nav-install { color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; background: var(--code); }
+nav a.nav-install:hover { border-color: var(--mute); }
+nav { align-items: center; }
 
-.hero { padding: 72px 0 40px; max-width: 760px; }
+.hero { padding: 64px 0 36px; max-width: 760px; }
 h1 { font-size: 46px; line-height: 1.2; letter-spacing: -.5px; margin: 0; font-weight: 650; }
 .lede { font-size: 20px; color: var(--mute); margin: 18px 0 0; }
 
-.install { margin-top: 34px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; }
+.install { padding: 0 0 8px; scroll-margin-top: 24px; }
+.install h2 { font-size: 17px; font-weight: 600; margin: 0 0 12px; }
+.install-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; }
 .cmd {
   display: flex; align-items: center; gap: 12px;
   background: var(--code); border: 1px solid var(--line); border-radius: 10px;
@@ -79,10 +84,11 @@ footer a { color: var(--mute); }
   .wrap { padding: 0 20px; }
   header.top { padding: 16px 0; }
   nav { gap: 16px; }
-  .hero { padding: 40px 0 24px; }
+  .hero { padding: 32px 0 24px; }
   h1 { font-size: 32px; }
   .lede { font-size: 17px; }
-  .cmd code { font-size: 13px; }
+  .cmd { align-items: flex-start; }
+  .cmd code { font-size: 13px; white-space: normal; overflow-wrap: break-word; overflow-x: visible; }
   .shot img { border-radius: 10px; }
   section.point { padding-top: 64px; }
   section.point h2 { font-size: 23px; }

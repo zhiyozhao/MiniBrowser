@@ -19,6 +19,7 @@
     <nav>
       <a href="en/" hreflang="en" lang="en">English</a>
       <a href="https://github.com/zhiyozhao/MiniBrowser">GitHub</a>
+      <a class="nav-install" href="#install">安装</a>
     </nav>
   </header>
 
@@ -26,18 +27,22 @@
     <div class="hero">
       <h1>能缩得很小的浏览器</h1>
       <p class="lede">MiniBrowser 是一个 macOS 浏览器，和你平时用的浏览器分开。放在屏幕一角开着一个网页，手上的事照常做。</p>
-      <div class="install">
+    </div>
+
+    <section id="install" class="install">
+      <h2>安装</h2>
+      <div class="install-row">
         <div class="cmd"><code id="cmd">brew install --cask zhiyozhao/tap/minibrowser</code><button type="button" id="copy">复制</button></div>
         <span class="alt">或者 <a href="https://github.com/zhiyozhao/MiniBrowser/releases/latest">下载 DMG</a> · macOS 13 及以上</span>
       </div>
       <p class="note">DMG 版第一次打开会提示“无法验证开发者”：先双击打开一次，再到“系统设置 → 隐私与安全性”底部点“仍要打开”。</p>
-    </div>
+    </section>
 
     <picture class="shot">
       <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="assets/corner-zh-dark.png" width="640" height="720">
       <source media="(max-width: 720px)" srcset="assets/corner-zh-light.png" width="640" height="720">
       <source media="(prefers-color-scheme: dark)" srcset="assets/hero-zh-dark.png">
-      <img src="assets/hero-zh-light.png" width="1200" height="720" alt="屏幕左边是正在使用的编辑器，右上角是一个很窄的 MiniBrowser 窗口，里面开着一篇文章">
+      <img src="assets/hero-zh-light.png" width="1200" height="720" alt="示意场景：左边是一个用灰色色块画出的编辑器窗口，右边是 MiniBrowser 的真实窗口截图，320 pt 宽，开着一个示例文章页">
     </picture>
 
     <section class="point">
@@ -47,7 +52,7 @@
         <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="assets/bars-zh-dark.png" width="560" height="380">
         <source media="(max-width: 720px)" srcset="assets/bars-zh-light.png" width="560" height="380">
         <source media="(prefers-color-scheme: dark)" srcset="assets/widths-zh-dark.png">
-        <img src="assets/widths-zh-light.png" width="1200" height="560" alt="同一个页面在 420、300、228 pt 三种宽度下的 MiniBrowser 窗口，越窄按钮越少，地址栏始终保留">
+        <img src="assets/widths-zh-light.png" width="1200" height="560" alt="MiniBrowser 在 420、300、228 pt 三种宽度下的真实窗口截图，开着同一个示例页：420 pt 有后退、前进、刷新和新建标签按钮，300 pt 只剩后退，228 pt 只剩地址栏">
       </picture>
     </section>
 
@@ -58,13 +63,13 @@
       </div>
       <div>
         <h2>有意不做</h2>
-        <p>下载、上传文件、跳转到其他 app、摄像头和麦克风、书签和历史记录。MiniBrowser 不打算成为完整的浏览器。</p>
+        <p>下载、上传文件、跳转到其他 app、摄像头和麦克风、书签和历史记录。点到下载链接时不会有反应。</p>
       </div>
     </div>
   </main>
 
   <footer>
-    <a href="https://github.com/zhiyozhao/MiniBrowser#readme">安装与快捷键</a>
+    <a href="https://github.com/zhiyozhao/MiniBrowser#快捷键">快捷键</a>
     <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/CHANGELOG.md">更新记录</a>
     <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/LICENSE">MIT 许可证</a>
   </footer>

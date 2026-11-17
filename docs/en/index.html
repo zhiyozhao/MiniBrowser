@@ -19,6 +19,7 @@
     <nav>
       <a href="../" hreflang="zh-CN" lang="zh-CN">中文</a>
       <a href="https://github.com/zhiyozhao/MiniBrowser">GitHub</a>
+      <a class="nav-install" href="#install">Install</a>
     </nav>
   </header>
 
@@ -26,18 +27,22 @@
     <div class="hero">
       <h1>A browser that can get very small</h1>
       <p class="lede">MiniBrowser is a macOS browser kept apart from the one you normally use. Leave a page open in a corner of the screen and keep working.</p>
-      <div class="install">
+    </div>
+
+    <section id="install" class="install">
+      <h2>Install</h2>
+      <div class="install-row">
         <div class="cmd"><code id="cmd">brew install --cask zhiyozhao/tap/minibrowser</code><button type="button" id="copy">Copy</button></div>
         <span class="alt">or <a href="https://github.com/zhiyozhao/MiniBrowser/releases/latest">download the DMG</a> · macOS 13 or later</span>
       </div>
       <p class="note">The first time you open the DMG version, macOS says it can't verify the developer. Open it once, then click "Open Anyway" at the bottom of System Settings → Privacy &amp; Security.</p>
-    </div>
+    </section>
 
     <picture class="shot">
       <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="../assets/corner-en-dark.png" width="640" height="720">
       <source media="(max-width: 720px)" srcset="../assets/corner-en-light.png" width="640" height="720">
       <source media="(prefers-color-scheme: dark)" srcset="../assets/hero-en-dark.png">
-      <img src="../assets/hero-en-light.png" width="1200" height="720" alt="An editor in use on the left side of the screen, and a narrow MiniBrowser window in the top-right corner showing an article">
+      <img src="../assets/hero-en-light.png" width="1200" height="720" alt="Mock-up: on the left, an editor window drawn with grey blocks; on the right, a real screenshot of a 320 pt wide MiniBrowser window showing a sample article">
     </picture>
 
     <section class="point">
@@ -47,7 +52,7 @@
         <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="../assets/bars-en-dark.png" width="560" height="380">
         <source media="(max-width: 720px)" srcset="../assets/bars-en-light.png" width="560" height="380">
         <source media="(prefers-color-scheme: dark)" srcset="../assets/widths-en-dark.png">
-        <img src="../assets/widths-en-light.png" width="1200" height="560" alt="The same page in MiniBrowser windows 420, 300 and 228 pt wide. Narrower windows show fewer buttons and keep the address bar">
+        <img src="../assets/widths-en-light.png" width="1200" height="560" alt="Real screenshots of MiniBrowser at 420, 300 and 228 pt wide on the same sample page: 420 pt shows back, forward, reload and new tab, 300 pt only back, 228 pt only the address bar">
       </picture>
     </section>
 
@@ -58,13 +63,13 @@
       </div>
       <div>
         <h2>Left out on purpose</h2>
-        <p>Downloads, file uploads, opening other apps, camera and microphone, bookmarks and history. MiniBrowser isn't meant to be a full browser.</p>
+        <p>Downloads, file uploads, opening other apps, camera and microphone, bookmarks and history. Clicking a download link does nothing.</p>
       </div>
     </div>
   </main>
 
   <footer>
-    <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/README.en.md">Install and shortcuts</a>
+    <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/README.en.md#shortcuts">Shortcuts</a>
     <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/CHANGELOG.md">Changelog</a>
     <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/LICENSE">MIT License</a>
   </footer>
