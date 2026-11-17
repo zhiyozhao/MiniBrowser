@@ -82,6 +82,10 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKScriptMessag
         webView.loadHTMLString(BrowserErrorPage.certificate(host: host), baseURL: url)
     }
 
+    func showWebContentError() {
+        webView.loadHTMLString(BrowserErrorPage.webContentTerminated(), baseURL: webView.url)
+    }
+
     func userContentController(_ userContentController: WKUserContentController,
                                didReceive message: WKScriptMessage) {
         guard message.name == "miniBrowser", message.body as? String == "continueCertificate" else { return }

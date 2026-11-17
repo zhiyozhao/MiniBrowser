@@ -28,6 +28,10 @@ enum BrowserErrorPage {
         )
     }
 
+    static func webContentTerminated() -> String {
+        page(title: "页面加载失败", heading: "页面加载失败", message: "网页进程已停止，请刷新重试。")
+    }
+
     private static func page(title: String, heading: String, message: String, button: String = "") -> String {
         """
         <!doctype html><html><head><meta charset="utf-8">

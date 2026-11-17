@@ -1,3 +1,4 @@
+import MiniBrowserCore
 import SwiftUI
 import WebKit
 
@@ -30,6 +31,7 @@ struct WebViewRepresentable: NSViewRepresentable {
         private let serverTrustSession: ServerTrustSession
         private var observations: [NSKeyValueObservation] = []
         private var lastMainFrameURL: URL?
+        private var recoveryState = WebContentRecoveryState()
         private var pendingCertificate: (site: ServerTrustSession.Site, trust: SecTrust, url: URL)?
 
         init(tab: BrowserTab,
@@ -138,6 +140,15 @@ struct WebViewRepresentable: NSViewRepresentable {
         /// 页面加载完成后再应用一次，确保缩放生效
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             tab.applySiteZoom()
+        }
+
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            switch recoveryState.processDidTerminate() {
+            case .reload:
+                webView.reload()
+            case .showError:
+                tab.showWebContentError()
+            }
         }
         func webView(_ webView: WKWebView,
                      didFailProvisionalNavigation navigation: WKNavigation!,
