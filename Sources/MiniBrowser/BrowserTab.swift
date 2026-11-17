@@ -2,7 +2,7 @@ import MiniBrowserCore
 import WebKit
 
 /// 一个标签页：持有一个 WKWebView 及其浏览状态
-final class BrowserTab: NSObject, ObservableObject, Identifiable, WKScriptMessageHandler {
+final class BrowserTab: ObservableObject, Identifiable {
     let id = UUID()
     let webView: WKWebView
 
@@ -15,18 +15,13 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKScriptMessag
     private static let minZoom: CGFloat = 0.5
     private static let maxZoom: CGFloat = 2.0
     private static let zoomStep: CGFloat = 0.1
-    private let scriptMessageHandler = WeakScriptMessageHandler()
-    var certificateContinueHandler: (() -> Void)?
 
     init(url: URL? = nil,
          configuration: WKWebViewConfiguration = WebViewConfigurationFactory.make(),
          loadsInitialContent: Bool = true) {
         WebViewConfigurationFactory.configure(configuration)
-        configuration.userContentController.add(scriptMessageHandler, name: "miniBrowser")
         webView = WKWebView(frame: .zero, configuration: configuration)
         webView.allowsMagnification = true // 触控板双指缩放
-        super.init()
-        scriptMessageHandler.delegate = self
         // 弹窗的首个导航由 WebKit 自己接续，不能重新发请求或先加载新标签页。
         guard loadsInitialContent else { return }
         if let url {
@@ -86,9 +81,4 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKScriptMessag
         webView.loadHTMLString(BrowserErrorPage.webContentTerminated(), baseURL: webView.url)
     }
 
-    func userContentController(_ userContentController: WKUserContentController,
-                               didReceive message: WKScriptMessage) {
-        guard message.name == "miniBrowser", message.body as? String == "continueCertificate" else { return }
-        certificateContinueHandler?()
-    }
 }

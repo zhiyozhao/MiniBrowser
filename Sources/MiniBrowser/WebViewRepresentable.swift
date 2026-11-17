@@ -45,9 +45,6 @@ struct WebViewRepresentable: NSViewRepresentable {
             self.serverTrustSession = serverTrustSession ?? .shared
             super.init()
 
-            tab.certificateContinueHandler = { [weak self] in
-                self?.continueCertificate()
-            }
             let webView = tab.webView
             observations = [
                 webView.observe(\.title) { [weak self] wv, _ in
@@ -109,7 +106,13 @@ struct WebViewRepresentable: NSViewRepresentable {
         func webView(_ webView: WKWebView,
                      decidePolicyFor navigationAction: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-            guard WebNavigationPolicy.allows(navigationAction.request.url) else {
+            let url = navigationAction.request.url
+            if url?.scheme?.lowercased() == "minibrowser", url?.host == "continue-certificate" {
+                continueCertificate()
+                decisionHandler(.cancel)
+                return
+            }
+            guard WebNavigationPolicy.allows(url) else {
                 decisionHandler(.cancel)
                 return
             }

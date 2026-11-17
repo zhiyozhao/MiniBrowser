@@ -19,7 +19,7 @@ UA 对所有网站统一使用 Safari 身份。实现选择 `applicationNameForU
 
 WebContent 崩溃恢复由 `WebContentRecoveryState` 限制为每个标签页一次自动 reload；后续崩溃只显示最简错误页，避免刷新循环，不加入重试按钮。
 
-证书例外由 `ServerTrustSession` 只存内存中的「scheme/host/port + 叶子证书摘要」。首次 serverTrust 质询会取消并显示错误页；用户点击“仍然继续”后重试原 URL，后续相同质询才通过 `URLCredential(trust:)` 接受。不能写入 UserDefaults、钥匙串或系统信任设置，也不能把例外扩展到其他源或其他证书。
+证书例外由 `ServerTrustSession` 只存内存中的「scheme/host/port + 叶子证书数据」。首次 serverTrust 质询会取消并显示错误页；用户点击“仍然继续”后重试原 URL，后续相同质询才通过 `URLCredential(trust:)` 接受。不能写入 UserDefaults、钥匙串或系统信任设置，也不能把例外扩展到其他源或其他证书。
 
 弹窗由 `createWebViewWith` 同步返回真实 WebView，不能改成另开标签或重新加载 URL，否则会丢失 opener、POST 和 `window.close()`。弹窗窗口固定为 520×640，复用 WebKit 传入的 configuration，并显式沿用 opener 的 websiteDataStore。
 

@@ -1,15 +1,4 @@
 import Foundation
-import WebKit
-
-/// WebKit 强持有 message handler，此代理避免 configuration 与 BrowserTab 形成循环。
-final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
-    weak var delegate: WKScriptMessageHandler?
-
-    func userContentController(_ userContentController: WKUserContentController,
-                               didReceive message: WKScriptMessage) {
-        delegate?.userContentController(userContentController, didReceive: message)
-    }
-}
 
 enum BrowserErrorPage {
     static func certificate(host: String) -> String {
@@ -21,7 +10,7 @@ enum BrowserErrorPage {
             <button id="continue">仍然继续</button>
             <script>
             document.getElementById('continue').addEventListener('click', () => {
-                window.webkit.messageHandlers.miniBrowser.postMessage('continueCertificate');
+                window.location.href = 'minibrowser://continue-certificate';
             });
             </script>
             """
