@@ -1,78 +1,87 @@
 # MiniBrowser
 
-[中文](README.md) | English
+[中文](README.md) · English · [Website](https://zhiyozhao.github.io/MiniBrowser/en/)
 
-A tiny, independent browser window. Keep it in a corner of your screen to open a page on the side, out of the way of the browser you normally use.
+A macOS browser that can shrink to a very small window, kept apart from the browser you normally use.<br>
+Leave a page open in a corner of the screen and keep working.
 
-[![Latest release](https://img.shields.io/github/v/release/zhiyozhao/MiniBrowser?label=latest)](https://github.com/zhiyozhao/MiniBrowser/releases/latest)
-![macOS 13+](https://img.shields.io/badge/macOS-13%2B-black)
-
-<img src="docs/assets/demo-small.png" alt="A very small MiniBrowser window sitting in a corner of a page, with the address bar and back/forward buttons still in place" width="340">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-en-dark.png">
+  <img src="docs/assets/hero-en-light.png" width="1200" alt="An editor in use on the left side of the screen, and a narrow MiniBrowser window in the top-right corner showing an article">
+</picture>
 
 ```bash
 brew install --cask zhiyozhao/tap/minibrowser
 ```
 
-Not using Homebrew? Download the DMG from [Releases](https://github.com/zhiyozhao/MiniBrowser/releases/latest) and drag MiniBrowser into Applications. Requires macOS 13 or later.
+Requires macOS 13 or later. Without Homebrew, download the DMG from [Releases](https://github.com/zhiyozhao/MiniBrowser/releases/latest) and drag MiniBrowser into Applications.
 
-## Highlights
+## Why it exists
 
-- **The window can be really small.** Shrink it down to 228×360; as it narrows, buttons step out of the way one by one and the address bar stays usable.
-- **Separate from your everyday browser.** Its own windows, cookies and cache — it never reads or shares anything with Safari or Chrome. Park it on the side without interfering with anything.
-- **Never gets in your way.** No notifications, no accounts, no push, and no camera or microphone permission requests.
-- Pop-up windows on the web (sign-in, payment) open properly, and your login state is kept.
-- Web alert / confirm / prompt dialogs work as expected; on certificate errors you can choose to continue.
-- Crashed pages reload automatically; the zoom level of each site is remembered.
+When you want a page to stay within reach while you work, like an article you haven't finished, a live stream, or a web chat, the easiest thing is a small window in a corner. MiniBrowser does only that.
 
-## How to use
+- **The window can be very small.** The minimum is 228 × 360 pt. As the window narrows, the new tab, reload, forward and back buttons fold away in that order. The address bar always stays.
+- **Separate from your everyday browser.** It is its own app, and its cookies, cache and sign-ins live only in its own folders. It can't see the history, tabs or accounts in Safari or Chrome, and the pages it opens don't show up there.
+- **One row of interface.** Window buttons, a few controls and the address bar. No bookmarks bar, sidebar or settings page. The tab bar appears only when a second tab is open.
 
-<img src="docs/assets/demo.png" alt="A normal-sized MiniBrowser window with the address bar and back/forward/reload buttons at the top and a web page in the window" width="960">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/widths-en-dark.png">
+  <img src="docs/assets/widths-en-light.png" width="1200" alt="The same page in MiniBrowser windows 420, 300 and 228 pt wide. Narrower windows show fewer buttons and keep the address bar">
+</picture>
 
-**Shortcuts**
+## Using it
+
+The toolbar is icons only. The menus and the few labels in the app are in Chinese.
+
+**Address bar**: addresses starting with `http://` or `https://` open directly. Text without spaces that contains a dot (such as `example.com`) opens with `https://` added. Anything else is searched on Bing. A new tab puts the cursor in the address bar.
+
+**Windows**: drag the empty area at the top to move a window. Every new window opens at 1100 × 700 in the middle of the screen; drag it smaller from there. MiniBrowser quits when its last window closes.
+
+**Zoom**: `⌘ -` / `⌘ =` change zoom by 10% between 50% and 200%, remembered per site (`www.` is treated as the same site). Trackpad pinch zoom also works but isn't remembered.
+
+**Pop-ups**: windows a page opens (sign-in, payment, `target="_blank"` links) open as separate small windows and share the sign-in state of the original page.
 
 | Shortcut | Action |
 | --- | --- |
-| `Command + T` | New tab |
-| `Command + W` | Close tab (closes the window when it is the only tab) |
-| `Command + N` | New window |
-| `Command + [` / `Command + ]` | Back / forward |
-| `Command + R` | Reload (stop while loading) |
-| `Command + -` / `Command + =` / `Command + 0` | Zoom out / zoom in / actual size |
-| `Command + Q` | Quit |
+| `⌘ T` | New tab |
+| `⌘ W` | Close tab; closes the window if it's the last tab |
+| `⌘ N` | New window |
+| `⌘ [` / `⌘ ]` | Back / Forward |
+| `⌘ R` | Reload; stops loading if a page is loading |
+| `⌘ -` / `⌘ =` / `⌘ 0` | Zoom out / Zoom in / Back to 100% |
+| `⌘ Q` | Quit |
 
-**Address bar**: type a URL to open it, or type anything else to search with Bing. New tabs focus the address bar automatically, so you can type right away.
+Shortcuts keep working after their buttons fold away in a narrow window.
 
-**Windows**: shrink them as far as you like (down to 228×360); drag the window by any empty spot in the top bar. Window size and position are remembered. The tab bar only shows up when you have more than one tab — otherwise there is just the address bar. Pages themselves support trackpad pinch zoom, with zoom remembered per site.
+## Where data is stored
 
-## Privacy
+MiniBrowser uses its own WebKit data folders and shares nothing with other browsers:
 
-- MiniBrowser itself does no networking: apart from the pages you open loading their own content, there is no telemetry, analytics or account system.
-- Everything stays on your machine: cookies and cache live in `~/Library/WebKit/com.zhao.minibrowser`, and settings (per-site zoom, window position) in `~/Library/Preferences/com.zhao.minibrowser.plist`.
-- Fully isolated from other browsers: it never reads history, cookies or passwords from Safari or Chrome, and your login state here never leaks out.
-- The exception behind "continue anyway" on certificate errors is kept in memory only. Quitting MiniBrowser forgets it; nothing is written to disk.
-- Camera and microphone requests from websites are always denied outright — no prompt, no remembered choice.
+| What | Where |
+| --- | --- |
+| Website data (local storage and so on) | `~/Library/WebKit/com.zhao.minibrowser` |
+| Cookies | `~/Library/HTTPStorages/com.zhao.minibrowser.binarycookies` |
+| Cache | `~/Library/Caches/com.zhao.minibrowser` |
+| Per-site zoom levels | `~/Library/Preferences/com.zhao.minibrowser.plist` |
+
+MiniBrowser has no accounts, analytics or update checks, and collects no usage data. When what you type in the address bar isn't an address, it is sent to Bing as a search.
+
+If a site's certificate is invalid, MiniBrowser shows an explanation page, and you can click "仍然继续" (Continue anyway) if you trust the site. The exception applies only to that site for the current run and is kept only in memory. Camera and microphone requests from websites are always denied.
 
 ## FAQ
 
-**Why can't I download or upload files?**
-By design. MiniBrowser is a minimal small-window browser, not a full browser; downloads, file uploads, jumping to external apps, and camera/microphone access are all deliberately left out. When you hit a download link, MiniBrowser stays on the current page.
+**Can it download or upload files?**
+No, on purpose. Downloads, uploads, opening other apps (links like `mailto:` or `weixin:`), camera and microphone are all left out. Clicking a download link leaves you on the current page and nothing is downloaded.
 
-**Nothing happens when I tap "Open in WeChat" or "Send email"?**
-Also by design. MiniBrowser never hands links over to other apps; such links are simply ignored.
+**Some sites won't let me sign in?**
+MiniBrowser doesn't support passkeys. Nested sign-ins that rely on third-party cookies and some card verification pages may also fail; this is a WKWebView limitation.
 
-**What if a site shows a certificate error?**
-MiniBrowser shows an error page. If you trust the site, click "Continue anyway". The exception applies only to that site for the current run — quitting MiniBrowser asks you again.
+**macOS says it can't verify the developer when I open the app from the DMG?**
+MiniBrowser isn't notarized by Apple. Open it once, then go to System Settings → Privacy & Security and click "Open Anyway" near the bottom. Installing with Homebrew avoids this prompt.
 
-**macOS says the app "cannot be verified by Apple" when I open it from the DMG?**
-The app is not notarized. On macOS 15, double-click it once, then go to System Settings → Privacy & Security and click "Open Anyway" at the bottom; on macOS 14 you can also right-click the app in Finder and choose Open. Installing via Homebrew handles the download quarantine automatically and skips this.
-
-**How do I uninstall?**
-Run `brew uninstall --cask --zap minibrowser` to remove preferences as well, or drag MiniBrowser from Applications to the Trash. To remove every trace, also delete `~/Library/WebKit/com.zhao.minibrowser` and `~/Library/Preferences/com.zhao.minibrowser.plist`.
+**How do I uninstall it?**
+`brew uninstall --cask --zap minibrowser` removes the app and its preferences. If you installed it by hand, drag MiniBrowser to the Trash. Website data, cookies and cache need to be removed by hand from the locations in the table above.
 
 ## License
 
-[MIT](LICENSE)
-
----
-
-[Changelog](CHANGELOG.md) · [Development docs](docs/DEVELOPMENT.md)
+[MIT](LICENSE) · [Changelog](CHANGELOG.md) · [Development notes](docs/DEVELOPMENT.md)

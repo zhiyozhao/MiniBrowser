@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tide Notes</title>
+<style>
+  :root { color-scheme: light dark; --bg: #fbfaf7; --fg: #1d1d1f; --mute: #6e6e73; --line: #e6e3dc; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1c1c1e; --fg: #ececee; --mute: #98989d; --line: #2f2f32; }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; }
+  body { font-family: -apple-system, "PingFang SC", sans-serif; background: var(--bg); color: var(--fg); }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .mark { font-size: 15px; font-weight: 650; letter-spacing: .2px; }
+  .issue { font-size: 13px; color: var(--mute); }
+  .art { margin: 18px 18px 0; aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; position: relative;
+         background: linear-gradient(180deg, #cfdde6 0%, #e9e4d8 58%, #9fb7c2 58.5%, #7f9dab 100%); }
+  @media (prefers-color-scheme: dark) {
+    .art { background: linear-gradient(180deg, #2b3a48 0%, #4a4f57 58%, #26343e 58.5%, #1b262e 100%); }
+  }
+  .sun { position: absolute; width: 22%; aspect-ratio: 1; border-radius: 50%; left: 60%; top: 30%; background: #f3e3c3; opacity: .9; }
+  @media (prefers-color-scheme: dark) { .sun { background: #d9d2c0; opacity: .55; } }
+  .boat { position: absolute; left: 22%; top: 40%; width: 14%; }
+  .boat path { fill: #2a2f35; }
+  @media (prefers-color-scheme: dark) { .boat path { fill: #0f1418; } }
+  article { padding: 18px 18px 28px; }
+  .kicker { font-size: 13px; color: var(--mute); margin-bottom: 8px; }
+  h1 { font-size: 22px; line-height: 1.3; font-weight: 700; letter-spacing: -.2px; }
+  p { font-size: 15px; line-height: 1.65; margin-top: 12px; }
+</style>
+</head>
+<body>
+<header><span class="mark">Tide Notes</span><span class="issue" data-zh="第 42 期" data-en="No. 42"></span></header>
+<div class="art" aria-hidden="true">
+  <div class="sun"></div>
+  <svg class="boat" viewBox="0 0 100 100"><path d="M52 6 L52 70 L18 70 Z M58 14 C80 30 88 52 84 70 L58 70 Z M10 76 L92 76 C86 88 76 94 64 94 L34 94 C22 94 14 88 10 76 Z"/></svg>
+</div>
+<article>
+  <div class="kicker" data-zh="周末随笔" data-en="Weekend essay"></div>
+  <h1 data-zh="在海边住了一个星期" data-en="A week by the sea"></h1>
+  <p data-zh="每天早上六点，渔船陆续回港。码头上的人不多，卖鱼的阿姨会把最小的那条留给门口的猫。" data-en="Every morning around six, the fishing boats come back in. The pier is quiet, and the woman selling fish saves the smallest one for the cat by the door."></p>
+  <p data-zh="我没有带电脑，只带了一本读到一半的书。" data-en="I didn't bring a laptop, only a book I was halfway through."></p>
+</article>
+<script>
+  const lang = new URLSearchParams(location.search).get('lang') === 'en' ? 'en' : 'zh';
+  document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+  document.querySelectorAll('[data-zh]').forEach(el => { el.textContent = el.dataset[lang]; });
+</script>
+</body>
+</html>

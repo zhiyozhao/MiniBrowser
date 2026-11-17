@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>MiniBrowser：能缩得很小的 macOS 浏览器</title>
+<meta name="description" content="MiniBrowser 是一个能缩得很小、和日常浏览器分开的 macOS 浏览器。放在屏幕一角开着一个网页，手上的事照常做。">
+<link rel="alternate" hreflang="en" href="https://zhiyozhao.github.io/MiniBrowser/en/">
+<link rel="alternate" hreflang="zh-CN" href="https://zhiyozhao.github.io/MiniBrowser/">
+<link rel="icon" type="image/png" href="assets/icon-64.png">
+<link rel="apple-touch-icon" href="assets/icon-256.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./"><img src="assets/icon-64.png" alt="">MiniBrowser</a>
+    <nav>
+      <a href="en/" hreflang="en" lang="en">English</a>
+      <a href="https://github.com/zhiyozhao/MiniBrowser">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h1>能缩得很小的浏览器</h1>
+      <p class="lede">MiniBrowser 是一个 macOS 浏览器，和你平时用的浏览器分开。放在屏幕一角开着一个网页，手上的事照常做。</p>
+      <div class="install">
+        <div class="cmd"><code id="cmd">brew install --cask zhiyozhao/tap/minibrowser</code><button type="button" id="copy">复制</button></div>
+        <span class="alt">或者 <a href="https://github.com/zhiyozhao/MiniBrowser/releases/latest">下载 DMG</a> · macOS 13 及以上</span>
+      </div>
+    </div>
+
+    <picture class="shot">
+      <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="assets/corner-zh-dark.png" width="640" height="720">
+      <source media="(max-width: 720px)" srcset="assets/corner-zh-light.png" width="640" height="720">
+      <source media="(prefers-color-scheme: dark)" srcset="assets/hero-zh-dark.png">
+      <img src="assets/hero-zh-light.png" width="1200" height="720" alt="屏幕左边是正在使用的编辑器，右上角是一个很窄的 MiniBrowser 窗口，里面开着一篇文章">
+    </picture>
+
+    <section class="point">
+      <h2>越窄，越简单</h2>
+      <p>窗口最小 228 × 360 pt。变窄时，新建标签、刷新、前进、后退按钮依次收起，地址栏一直都在。按钮收起后，快捷键照样能用。</p>
+      <picture class="shot">
+        <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="assets/bars-zh-dark.png" width="560" height="380">
+        <source media="(max-width: 720px)" srcset="assets/bars-zh-light.png" width="560" height="380">
+        <source media="(prefers-color-scheme: dark)" srcset="assets/widths-zh-dark.png">
+        <img src="assets/widths-zh-light.png" width="1200" height="560" alt="同一个页面在 420、300、228 pt 三种宽度下的 MiniBrowser 窗口，越窄按钮越少，地址栏始终保留">
+      </picture>
+    </section>
+
+    <div class="cols">
+      <div>
+        <h2>和日常浏览器分开</h2>
+        <p>它是单独的一个 app，Cookie、缓存和登录状态只存在它自己的目录里。Safari、Chrome 里的历史和账号它看不到，它打开过的页面也不会出现在那边。</p>
+      </div>
+      <div>
+        <h2>只有一行界面</h2>
+        <p>红绿灯、几个按钮和地址栏。没有书签栏、侧边栏和设置页，开了第二个标签才出现标签栏。</p>
+      </div>
+      <div>
+        <h2>记住每个网站的缩放</h2>
+        <p>用 ⌘ − 和 ⌘ = 调过的比例按网站保存，下次打开还是那个大小。在小窗口里看文字密的网页时用得上。</p>
+      </div>
+      <div>
+        <h2>有些事有意不做</h2>
+        <p>下载、上传、跳转到其他 app、摄像头和麦克风都不做。MiniBrowser 不打算成为一个完整的浏览器。</p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <a href="https://github.com/zhiyozhao/MiniBrowser#readme">使用说明</a>
+    <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/CHANGELOG.md">更新记录</a>
+    <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/LICENSE">MIT 许可证</a>
+  </footer>
+</div>
+<script>
+  document.getElementById('copy').addEventListener('click', function () {
+    var button = this;
+    navigator.clipboard.writeText(document.getElementById('cmd').textContent).then(function () {
+      button.textContent = '已复制';
+      setTimeout(function () { button.textContent = '复制'; }, 1600);
+    });
+  });
+</script>
+</body>
+</html>

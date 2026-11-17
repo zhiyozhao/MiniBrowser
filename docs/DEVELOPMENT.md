@@ -61,3 +61,18 @@ Release 说明由 `Scripts/release-notes.sh` 截取 CHANGELOG 的对应版本段
 `make run` 只执行本仓库 app 内的二进制，记录其 PID，5 秒后结束并等待该 PID；异常退出时也由 trap 清理。不要用 `killall MiniBrowser`，不要操作用户正在运行的实例或 `/Applications/MiniBrowser.app`。
 
 单元测试不覆盖真实网页加载、UA 指纹或网站兼容性。需要调查网站问题时，应单独记录 URL、导航/重定向过程、UA 和 WebKit 错误，不在本检查流程中访问真实网站。
+
+## 官网与演示图
+
+官网是 `docs/` 下的静态单页：`index.html`（中文）、`en/index.html`（英文）、`site.css`，没有构建步骤、统计和第三方脚本。GitHub Pages 选择 main 分支的 `/docs` 目录发布，`docs/.nojekyll` 关闭 Jekyll 处理。README 和官网共用 `docs/assets/` 里的图片。
+
+演示图都是 Retina 2x PNG，按以下步骤重新生成（可选工具：peekaboo、python3、全局安装的 Playwright；`make check` 不依赖它们）：
+
+```bash
+Scripts/build-app.sh                 # 先有 MiniBrowser.app
+Scripts/demo/capture.sh              # 启动独立副本，按窗口 ID 截原图到 .local/demo/raw/
+node Scripts/demo/render.mjs         # 合成 docs/assets/{hero,widths,corner,bars}-<语言>-<主题>.png
+node Scripts/demo/preview.mjs <目录>  # 本地截官网（中英、浅深、桌面/手机）和 README 预览
+```
+
+`capture.sh` 只截自己启动的副本窗口，使用独立 defaults suite（`MiniBrowser.Demo`）和 `.local/demo/data`，页面是本地 `Scripts/demo/page.html`；结束时清理副本和 suite，并比较真实 `com.zhao.minibrowser.plist` 前后的 SHA-256。浅色副本通过启动参数 `-NSRequiresAquaSystemAppearance YES` 得到，不改系统外观。地址栏显示的 `tide.example` 是截图前用辅助功能写入的示例文字，并没有导航过去。背景和左侧编辑器窗口由 `Scripts/demo/scene.html` 用 CSS 画出。

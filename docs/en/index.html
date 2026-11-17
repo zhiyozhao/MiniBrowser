@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>MiniBrowser: a macOS browser that can get very small</title>
+<meta name="description" content="MiniBrowser is a macOS browser that shrinks to a very small window and stays apart from your everyday browser. Leave a page open in a corner of the screen and keep working.">
+<link rel="alternate" hreflang="zh-CN" href="https://zhiyozhao.github.io/MiniBrowser/">
+<link rel="alternate" hreflang="en" href="https://zhiyozhao.github.io/MiniBrowser/en/">
+<link rel="icon" type="image/png" href="../assets/icon-64.png">
+<link rel="apple-touch-icon" href="../assets/icon-256.png">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./"><img src="../assets/icon-64.png" alt="">MiniBrowser</a>
+    <nav>
+      <a href="../" hreflang="zh-CN" lang="zh-CN">中文</a>
+      <a href="https://github.com/zhiyozhao/MiniBrowser">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h1>A browser that can get very small</h1>
+      <p class="lede">MiniBrowser is a macOS browser kept apart from the one you normally use. Leave a page open in a corner of the screen and keep working.</p>
+      <div class="install">
+        <div class="cmd"><code id="cmd">brew install --cask zhiyozhao/tap/minibrowser</code><button type="button" id="copy">Copy</button></div>
+        <span class="alt">or <a href="https://github.com/zhiyozhao/MiniBrowser/releases/latest">download the DMG</a> · macOS 13 or later</span>
+      </div>
+    </div>
+
+    <picture class="shot">
+      <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="../assets/corner-en-dark.png" width="640" height="720">
+      <source media="(max-width: 720px)" srcset="../assets/corner-en-light.png" width="640" height="720">
+      <source media="(prefers-color-scheme: dark)" srcset="../assets/hero-en-dark.png">
+      <img src="../assets/hero-en-light.png" width="1200" height="720" alt="An editor in use on the left side of the screen, and a narrow MiniBrowser window in the top-right corner showing an article">
+    </picture>
+
+    <section class="point">
+      <h2>Narrower, simpler</h2>
+      <p>The smallest window is 228 × 360 pt. As it narrows, the new tab, reload, forward and back buttons fold away in that order, and the address bar always stays. Their shortcuts keep working.</p>
+      <picture class="shot">
+        <source media="(max-width: 720px) and (prefers-color-scheme: dark)" srcset="../assets/bars-en-dark.png" width="560" height="380">
+        <source media="(max-width: 720px)" srcset="../assets/bars-en-light.png" width="560" height="380">
+        <source media="(prefers-color-scheme: dark)" srcset="../assets/widths-en-dark.png">
+        <img src="../assets/widths-en-light.png" width="1200" height="560" alt="The same page in MiniBrowser windows 420, 300 and 228 pt wide. Narrower windows show fewer buttons and keep the address bar">
+      </picture>
+    </section>
+
+    <div class="cols">
+      <div>
+        <h2>Apart from your everyday browser</h2>
+        <p>It is its own app, and its cookies, cache and sign-ins live only in its own folders. It can't see the history or accounts in Safari or Chrome, and the pages it opens don't show up there.</p>
+      </div>
+      <div>
+        <h2>One row of interface</h2>
+        <p>Window buttons, a few controls and the address bar. No bookmarks bar, sidebar or settings page. The tab bar appears only when a second tab is open.</p>
+      </div>
+      <div>
+        <h2>Zoom remembered per site</h2>
+        <p>Zoom you set with ⌘ − and ⌘ = is saved for each site, so a page opens at the same size next time. Handy for dense pages in a small window.</p>
+      </div>
+      <div>
+        <h2>Some things left out on purpose</h2>
+        <p>No downloads, uploads, opening other apps, camera or microphone. MiniBrowser isn't meant to be a full browser.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/README.en.md">How to use</a>
+    <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/CHANGELOG.md">Changelog</a>
+    <a href="https://github.com/zhiyozhao/MiniBrowser/blob/main/LICENSE">MIT License</a>
+  </footer>
+</div>
+<script>
+  document.getElementById('copy').addEventListener('click', function () {
+    var button = this;
+    navigator.clipboard.writeText(document.getElementById('cmd').textContent).then(function () {
+      button.textContent = 'Copied';
+      setTimeout(function () { button.textContent = 'Copy'; }, 1600);
+    });
+  });
+</script>
+</body>
+</html>
