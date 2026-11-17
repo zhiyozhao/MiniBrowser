@@ -2,7 +2,20 @@ import SwiftUI
 
 /// 一个浏览器窗口：工具栏（与红绿灯同行）+ 标签栏 + 网页区域
 struct BrowserView: View {
-    @StateObject private var model = BrowserWindowModel()
+    @StateObject private var model: BrowserWindowModel
+    private let onCreateWebView: PopupWebViewFactory
+
+    init(model: BrowserWindowModel = BrowserWindowModel(),
+         onCreateWebView: @escaping PopupWebViewFactory = { configuration, action, features in
+             (NSApp.delegate as? AppDelegate)?.openPopup(
+                 configuration: configuration,
+                 navigationAction: action,
+                 windowFeatures: features
+             )
+         }) {
+        _model = StateObject(wrappedValue: model)
+        self.onCreateWebView = onCreateWebView
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,10 +25,8 @@ struct BrowserView: View {
             }
             Divider()
             if let tab = model.selectedTab {
-                WebViewRepresentable(tab: tab) { url in
-                    model.newTab(url: url)
-                }
-                .id(tab.id)
+                WebViewRepresentable(tab: tab, onCreateWebView: onCreateWebView)
+                    .id(tab.id)
             } else {
                 Spacer()
             }

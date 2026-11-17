@@ -16,10 +16,14 @@ final class BrowserTab: ObservableObject, Identifiable {
     private static let maxZoom: CGFloat = 2.0
     private static let zoomStep: CGFloat = 0.1
 
-    init(url: URL? = nil, configuration: WKWebViewConfiguration = WebViewConfigurationFactory.make()) {
+    init(url: URL? = nil,
+         configuration: WKWebViewConfiguration = WebViewConfigurationFactory.make(),
+         loadsInitialContent: Bool = true) {
         WebViewConfigurationFactory.configure(configuration)
         webView = WKWebView(frame: .zero, configuration: configuration)
         webView.allowsMagnification = true // 触控板双指缩放
+        // 弹窗的首个导航由 WebKit 自己接续，不能重新发请求或先加载新标签页。
+        guard loadsInitialContent else { return }
         if let url {
             urlText = url.absoluteString
             webView.load(URLRequest(url: url))

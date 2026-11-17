@@ -19,8 +19,8 @@ final class BrowserWindowModel: ObservableObject {
         tabs.first { $0.id == selectedID }
     }
 
-    init() {
-        let tab = BrowserTab()
+    init(initialTab: BrowserTab? = nil) {
+        let tab = initialTab ?? BrowserTab()
         tabsByID = [tab.id: tab]
         state = BrowserWindowState(initialTabID: tab.id)
     }

@@ -11,11 +11,15 @@ final class WebViewFixture {
     let window: NSWindow
     let webView: WKWebView
 
-    init(configuration: WKWebViewConfiguration? = nil) {
-        webView = WKWebView(
+    convenience init(configuration: WKWebViewConfiguration? = nil) {
+        self.init(webView: WKWebView(
             frame: NSRect(x: 0, y: 0, width: 520, height: 640),
             configuration: configuration ?? WKWebViewConfiguration()
-        )
+        ))
+    }
+
+    init(webView: WKWebView) {
+        self.webView = webView
         window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 520, height: 640),
             styleMask: [.titled, .closable, .resizable],
@@ -56,6 +60,17 @@ func waitUntil(_ description: String, timeout: TimeInterval = 8,
     let deadline = ContinuousClock.now.advanced(by: .seconds(timeout))
     while ContinuousClock.now < deadline {
         if try condition() { return }
+        try await Task.sleep(for: .milliseconds(25))
+    }
+    throw WebViewTestError(description: "Timed out waiting for \(description)")
+}
+
+@MainActor
+func waitUntil(_ description: String, timeout: TimeInterval = 8,
+               condition: @MainActor () async throws -> Bool) async throws {
+    let deadline = ContinuousClock.now.advanced(by: .seconds(timeout))
+    while ContinuousClock.now < deadline {
+        if try await condition() { return }
         try await Task.sleep(for: .milliseconds(25))
     }
     throw WebViewTestError(description: "Timed out waiting for \(description)")

@@ -2,9 +2,11 @@ import SwiftUI
 import WebKit
 
 /// 把 WKWebView 包进 SwiftUI，并同步浏览状态到 BrowserTab
+typealias PopupWebViewFactory = (WKWebViewConfiguration, WKNavigationAction, WKWindowFeatures) -> WKWebView?
+
 struct WebViewRepresentable: NSViewRepresentable {
     let tab: BrowserTab
-    var onOpenNewTab: (URL) -> Void
+    var onCreateWebView: PopupWebViewFactory
 
     func makeNSView(context: Context) -> WKWebView {
         tab.webView.uiDelegate = context.coordinator
@@ -17,17 +19,17 @@ struct WebViewRepresentable: NSViewRepresentable {
     func updateNSView(_ nsView: WKWebView, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(tab: tab, onOpenNewTab: onOpenNewTab)
+        Coordinator(tab: tab, onCreateWebView: onCreateWebView)
     }
 
     final class Coordinator: NSObject, WKUIDelegate, WKNavigationDelegate {
         private let tab: BrowserTab
-        private let onOpenNewTab: (URL) -> Void
+        private let onCreateWebView: PopupWebViewFactory
         private var observations: [NSKeyValueObservation] = []
 
-        init(tab: BrowserTab, onOpenNewTab: @escaping (URL) -> Void) {
+        init(tab: BrowserTab, onCreateWebView: @escaping PopupWebViewFactory) {
             self.tab = tab
-            self.onOpenNewTab = onOpenNewTab
+            self.onCreateWebView = onCreateWebView
             super.init()
 
             let webView = tab.webView
@@ -76,15 +78,18 @@ struct WebViewRepresentable: NSViewRepresentable {
                   webView.url?.absoluteString ?? "(未知地址)", error.localizedDescription)
         }
 
-        /// 网页请求新开窗口（target=_blank 等）时，改为新开一个标签页
+        /// 返回真实弹窗 WebView，保留 window.open 返回值、opener、POST 和关闭链路。
         func webView(_ webView: WKWebView,
                      createWebViewWith configuration: WKWebViewConfiguration,
                      for navigationAction: WKNavigationAction,
                      windowFeatures: WKWindowFeatures) -> WKWebView? {
-            if let url = navigationAction.request.url {
-                DispatchQueue.main.async { self.onOpenNewTab(url) }
-            }
-            return nil
+            configuration.websiteDataStore = webView.configuration.websiteDataStore
+            WebViewConfigurationFactory.configure(configuration)
+            return onCreateWebView(configuration, navigationAction, windowFeatures)
+        }
+
+        func webViewDidClose(_ webView: WKWebView) {
+            webView.window?.close()
         }
     }
 }

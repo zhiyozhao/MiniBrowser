@@ -16,6 +16,8 @@
 
 UA 对所有网站统一使用 Safari 身份。实现选择 `applicationNameForUserAgent = "Version/18.0 Safari/605.1.15"`，而不是维护一份完整 UA：WKWebView 会继续提供真实系统和 AppleWebKit 版本，只补上 Safari 识别段，避免完整伪造在系统升级后长期失配，也不存在按域名切换造成的子资源身份错位。
 
+弹窗由 `createWebViewWith` 同步返回真实 WebView，不能改成另开标签或重新加载 URL，否则会丢失 opener、POST 和 `window.close()`。弹窗窗口固定为 520×640，复用 WebKit 传入的 configuration，并显式沿用 opener 的 websiteDataStore。
+
 `BrowserWindowState` 只存 UUID，不持有 WebView。关闭选中标签时优先选择原位置的后一个标签，末尾则选择前一个；关闭未选中标签不改变选择。正常 UI 关闭最后一个标签仍由窗口层处理，本次拆分没有改变该流程。
 
 ## 构建、签名与产物

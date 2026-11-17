@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import WebKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowControllers: [BrowserWindowController] = []
@@ -17,9 +18,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openNewWindow()
     }
 
-    private func openNewWindow() {
+    func openPopup(configuration: WKWebViewConfiguration,
+                   navigationAction: WKNavigationAction,
+                   windowFeatures: WKWindowFeatures) -> WKWebView? {
+        let tab = BrowserTab(configuration: configuration, loadsInitialContent: false)
+        openNewWindow(initialTab: tab, contentSize: NSSize(width: 520, height: 640))
+        return tab.webView
+    }
+
+    @discardableResult
+    private func openNewWindow(initialTab: BrowserTab? = nil,
+                               contentSize: NSSize = NSSize(width: 1100, height: 700)) -> BrowserWindowController {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1100, height: 700),
+            contentRect: NSRect(origin: .zero, size: contentSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -27,14 +38,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         // 最小宽度 = 红绿灯区(68) + 地址栏下限(140) + 左右padding(20) = 228
-        window.contentMinSize = NSSize(width: 228, height: 360)
+        window.contentMinSize = initialTab == nil
+            ? NSSize(width: 228, height: 360)
+            : NSSize(width: 320, height: 360)
         // 空工具栏：让红绿灯在更高的区域内垂直居中，地址栏才能获得上下留白且与红绿灯对齐
         let toolbar = NSToolbar(identifier: "MainToolbar")
         toolbar.showsBaselineSeparator = false
         window.toolbar = toolbar
         window.toolbarStyle = .unifiedCompact
         window.center()
-        let hostingController = NSHostingController(rootView: BrowserView())
+        let hostingController = NSHostingController(
+            rootView: BrowserView(model: BrowserWindowModel(initialTab: initialTab))
+        )
         hostingController.sizingOptions = [] // 不要用 SwiftUI 内容尺寸反推窗口大小
         window.contentViewController = hostingController
 
@@ -44,9 +59,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         controller.showWindow(nil)
         // HostingController 会把窗口缩到最小，显示后强制恢复默认尺寸
-        window.setContentSize(NSSize(width: 1100, height: 700))
+        window.setContentSize(contentSize)
         window.center()
         windowControllers.append(controller)
+        return controller
     }
 
     private func setupMainMenu() {
