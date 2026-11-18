@@ -24,6 +24,13 @@ struct RuntimeEnvironmentTests {
         ) == "/tmp/MiniBrowserCopy")
     }
 
+    @Test("传入 data directory 一律使用 nonPersistent，正式环境仍使用默认 store")
+    @MainActor
+    func dataDirectoryAlwaysUsesNonPersistentStore() {
+        #expect(!AppEnvironment.websiteDataStore(forDataDirectory: "/tmp/MiniBrowserCopy").isPersistent)
+        #expect(AppEnvironment.websiteDataStore(forDataDirectory: nil).isPersistent)
+    }
+
     @Test("make check 使用独立 suite 与 nonPersistent store，HOME 不变")
     @MainActor
     func injectedRuntimeIsolation() throws {

@@ -99,5 +99,9 @@ final class BrowserWindowModel: ObservableObject {
         tabsByID[id] = nil
         coordinators[id] = nil
         webViewHost?.sync(model: self)
+        if selectedID != id, let selectedTab {
+            webViewHost?.select(selectedTab.id,
+                                focusWebView: !selectedTab.urlText.isEmpty || selectedTab.openerTabID != nil)
+        }
     }
 }

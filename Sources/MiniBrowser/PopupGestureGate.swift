@@ -4,17 +4,36 @@ import WebKit
 /// permit for each trusted activation, in a content world the page cannot access.
 @MainActor
 final class PopupGestureGate: NSObject, WKScriptMessageHandler {
+    private final class Permit: NSObject {
+        let activationToken: String
+        var available = true
+
+        init(activationToken: String) { self.activationToken = activationToken }
+    }
+
     static let shared = PopupGestureGate()
     static let messageName = "minibrowserPopupGesture"
-    private let permits = NSMapTable<WKWebView, NSNumber>.weakToStrongObjects()
+    private let permits = NSMapTable<WKWebView, Permit>.weakToStrongObjects()
     private static let script = """
-    function grantPopup(event) {
+    let minibrowserPointerActivation = { token: null, serial: 0 };
+    function grantPopup(event, token) {
         if (!event.isTrusted) return;
-        webkit.messageHandlers.minibrowserPopupGesture.postMessage('input');
+        webkit.messageHandlers.minibrowserPopupGesture.postMessage(token || 'input');
     }
-    // mouseup represents the completed activation. Keeping this independent of
-    // a wall-clock timer allows slow clicks and context-menu actions to finish.
-    addEventListener('mouseup', grantPopup, true);
+    // Down and up share one activation token. This permits mousedown handlers,
+    // while preventing the matching mouseup from granting a second popup.
+    addEventListener('mousedown', event => {
+        if (!event.isTrusted) return;
+        minibrowserPointerActivation.serial++;
+        minibrowserPointerActivation.token = 'pointer:' + minibrowserPointerActivation.serial;
+        grantPopup(event, minibrowserPointerActivation.token);
+    }, true);
+    addEventListener('mouseup', event => {
+        if (!event.isTrusted) return;
+        const token = minibrowserPointerActivation.token ||
+            ('pointer:' + (++minibrowserPointerActivation.serial));
+        grantPopup(event, token);
+    }, true);
     addEventListener('keydown', event => {
         if (!event.repeat) grantPopup(event);
     }, true);
@@ -41,15 +60,20 @@ final class PopupGestureGate: NSObject, WKScriptMessageHandler {
         // A permit is deliberately not time limited. WebKit still applies its
         // own transient-user-activation rules; this map only ensures that our
         // delegate can create at most one tab for one activation.
-        permits.setObject(NSNumber(value: true), forKey: webView)
+        let token = message.body as? String ?? UUID().uuidString
+        if token.hasPrefix("pointer:"),
+           let existing = permits.object(forKey: webView), existing.activationToken == token {
+            return
+        }
+        permits.setObject(Permit(activationToken: token), forKey: webView)
     }
 
     func consume(for webView: WKWebView) -> Bool {
-        guard permits.object(forKey: webView) != nil else {
+        guard let permit = permits.object(forKey: webView), permit.available else {
             permits.removeObject(forKey: webView)
             return false
         }
-        permits.removeObject(forKey: webView)
+        permit.available = false
         return true
     }
 }

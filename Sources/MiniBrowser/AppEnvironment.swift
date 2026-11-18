@@ -19,16 +19,7 @@ enum AppEnvironment {
 
     private static let preparationLock = NSLock()
     private static var didPrepareDataDirectory = false
-    private static let isolatedWebsiteDataStoreID = UUID()
-    private static let isolatedWebsiteDataStore: WKWebsiteDataStore = {
-        if ProcessInfo.processInfo.environment["MINIBROWSER_NONPERSISTENT"] == "1" {
-            return .nonPersistent()
-        }
-        if #available(macOS 14.0, *) {
-            return WKWebsiteDataStore(forIdentifier: isolatedWebsiteDataStoreID)
-        }
-        return .nonPersistent()
-    }()
+    private static let isolatedWebsiteDataStore: WKWebsiteDataStore = .nonPersistent()
 
     static func option(environmentKey: String, argument: String,
                        environment: [String: String] = ProcessInfo.processInfo.environment,
@@ -56,8 +47,13 @@ enum AppEnvironment {
         guard dataDirectoryPath != nil else {
             return
         }
-        // macOS 13 has no identifier-based persistent store. A non-persistent
-        // store is the safe isolation fallback; make check uses it on all OSes.
+        // Any explicit data-directory override is an isolated test/dev copy.
+        // Keep it non-persistent on every supported macOS version so it cannot
+        // create a UUID store under the production bundle's WebKit directory.
         configuration.websiteDataStore = isolatedWebsiteDataStore
+    }
+
+    static func websiteDataStore(forDataDirectory dataDirectory: String?) -> WKWebsiteDataStore {
+        dataDirectory == nil ? .default() : .nonPersistent()
     }
 }

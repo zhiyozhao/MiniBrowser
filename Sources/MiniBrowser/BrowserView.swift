@@ -125,7 +125,16 @@ struct WebViewStackRepresentable: NSViewRepresentable {
         }
 
         private func show(_ id: BrowserTab.ID?, focusWebView: Bool) {
-            guard selectedID != id || id.flatMap({ viewsByID[$0] })?.isHidden == true else { return }
+            if let id,
+               selectedID == id,
+               let view = viewsByID[id], mountedTabIDs.contains(id), !view.isHidden {
+                if focusWebView {
+                    window?.makeFirstResponder(view)
+                } else {
+                    focusAddressField()
+                }
+                return
+            }
             for (tabID, view) in viewsByID where mountedTabIDs.contains(tabID) {
                 view.isHidden = tabID != id
             }

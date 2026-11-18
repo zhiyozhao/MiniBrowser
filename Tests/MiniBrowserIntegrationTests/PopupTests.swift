@@ -232,6 +232,33 @@ struct PopupTests {
         fixture.assertOneWindow()
     }
 
+    @Test("mousedown 触发的弹窗能打开")
+    func mousedownActivationOpensPopup() async throws {
+        let fixture = try await PopupFixture.make()
+        defer { fixture.close() }
+        _ = try await fixture.main.webView.callAsyncJavaScript(
+            "webkit.messageHandlers.minibrowserPopupGesture.postMessage('pointer:test-down');",
+            arguments: [:], in: nil, contentWorld: .defaultClient)
+        _ = try await fixture.main.webView.evaluateJavaScript("window.open('/child', '_blank'); void(0)")
+        try await waitUntil("mousedown popup ready") { fixture.model.tabs.contains { $0.openerTabID == fixture.main.id && $0.title == "child-ready" } }
+        fixture.assertOneWindow()
+    }
+
+    @Test("同一次点击的 mousedown 和 mouseup 最多打开一个标签")
+    func downAndUpShareOneActivation() async throws {
+        let fixture = try await PopupFixture.make()
+        defer { fixture.close() }
+        for _ in 0..<2 {
+            _ = try await fixture.main.webView.callAsyncJavaScript(
+                "webkit.messageHandlers.minibrowserPopupGesture.postMessage('pointer:same-click');",
+                arguments: [:], in: nil, contentWorld: .defaultClient)
+            _ = try await fixture.main.webView.evaluateJavaScript("window.open('/child', '_blank'); void(0)")
+        }
+        try await waitUntil("down/up popup") { fixture.model.tabs.count == 3 }
+        #expect(fixture.model.tabs.filter { $0.openerTabID == fixture.main.id }.count == 1)
+        fixture.assertOneWindow()
+    }
+
     @Test("按住链接 400ms 后松开仍能打开弹窗")
     func heldActivationOpensAfterMouseUp() async throws {
         let fixture = try await PopupFixture.make()
@@ -297,6 +324,17 @@ struct PopupTests {
         try await waitUntil("popup closed") { fixture.model.tabs.count == 2 }
         #expect(fixture.model.selectedID == fixture.main.id)
         #expect(fixture.window.firstResponder === fixture.main.webView)
+        fixture.assertOneWindow()
+    }
+
+    @Test("关闭空白标签后回到已加载页面并恢复页面焦点")
+    func closingBlankTabRestoresLoadedWebViewFocus() async throws {
+        let fixture = try await PopupFixture.make()
+        defer { fixture.close() }
+        fixture.model.selectedID = fixture.other.id
+        fixture.model.closeTab(fixture.other.id)
+        try await waitUntil("loaded tab focus") { fixture.window.firstResponder === fixture.main.webView }
+        #expect(fixture.model.selectedID == fixture.main.id)
         fixture.assertOneWindow()
     }
 
