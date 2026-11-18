@@ -28,12 +28,14 @@ struct WebViewRepresentable: NSViewRepresentable {
         private let tab: BrowserTab
         private let onCreateWebView: PopupWebViewFactory
         private let dialogs: JavaScriptDialogHandling
+        private let isTabSelected: () -> Bool
         private let serverTrustSession: ServerTrustSession
         private let onPopupClosed: ((BrowserTab.ID, BrowserTab.ID?) -> Void)?
         private let validTrustHandler: ((SecTrust, @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) -> Void)?
         private var observations: [NSKeyValueObservation] = []
         private var lastMainFrameURL: URL?
         private var lastCommittedURL: URL?
+        private var hasCommittedNavigation = false
         private var recoveryState = WebContentRecoveryState()
         private struct PendingCertificate {
             let token = UUID()
@@ -48,12 +50,14 @@ struct WebViewRepresentable: NSViewRepresentable {
         init(tab: BrowserTab,
              onCreateWebView: @escaping PopupWebViewFactory,
              dialogs: JavaScriptDialogHandling? = nil,
+             isTabSelected: @escaping () -> Bool = { true },
              serverTrustSession: ServerTrustSession? = nil,
              validTrustHandler: ((SecTrust, @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) -> Void)? = nil,
              onPopupClosed: ((BrowserTab.ID, BrowserTab.ID?) -> Void)? = nil) {
             self.tab = tab
             self.onCreateWebView = onCreateWebView
             self.dialogs = dialogs ?? AppKitJavaScriptDialogs()
+            self.isTabSelected = isTabSelected
             self.serverTrustSession = serverTrustSession ?? .shared
             self.validTrustHandler = validTrustHandler
             self.onPopupClosed = onPopupClosed
@@ -99,6 +103,7 @@ struct WebViewRepresentable: NSViewRepresentable {
                      runJavaScriptAlertPanelWithMessage message: String,
                      initiatedByFrame frame: WKFrameInfo,
                      completionHandler: @escaping () -> Void) {
+            guard isTabSelected() else { completionHandler(); return }
             dialogs.showAlert(message, in: webView, completion: completionHandler)
         }
 
@@ -106,6 +111,7 @@ struct WebViewRepresentable: NSViewRepresentable {
                      runJavaScriptConfirmPanelWithMessage message: String,
                      initiatedByFrame frame: WKFrameInfo,
                      completionHandler: @escaping (Bool) -> Void) {
+            guard isTabSelected() else { completionHandler(false); return }
             dialogs.showConfirm(message, in: webView, completion: completionHandler)
         }
 
@@ -114,6 +120,7 @@ struct WebViewRepresentable: NSViewRepresentable {
                      defaultText: String?,
                      initiatedByFrame frame: WKFrameInfo,
                      completionHandler: @escaping (String?) -> Void) {
+            guard isTabSelected() else { completionHandler(nil); return }
             dialogs.showPrompt(prompt, defaultText: defaultText, in: webView, completion: completionHandler)
         }
 
@@ -161,6 +168,12 @@ struct WebViewRepresentable: NSViewRepresentable {
             } == true
             if !navigationResponse.canShowMIMEType || isAttachment {
                 decisionHandler(.cancel)
+                if navigationResponse.isForMainFrame, tab.openerTabID != nil, !hasCommittedNavigation {
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self else { return }
+                        self.onPopupClosed?(self.tab.id, self.tab.openerTabID)
+                    }
+                }
                 if navigationResponse.isForMainFrame,
                    let lastCommittedURL,
                    lastCommittedURL != webView.url {
@@ -228,6 +241,10 @@ struct WebViewRepresentable: NSViewRepresentable {
         }
 
         /// 页面加载完成后再应用一次，确保缩放生效
+        func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+            hasCommittedNavigation = true
+        }
+
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             isLoadingCertificateErrorPage = false
             lastCommittedURL = webView.url

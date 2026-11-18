@@ -51,8 +51,13 @@ final class BrowserWindowModel: ObservableObject {
             tab: tab,
             onCreateWebView: { [weak self, weak tab] configuration, action, _ in
                 guard let self, let tab else { return nil }
+                guard PopupGestureGate.shared.consume(for: tab.webView) else { return nil }
                 return self.newPopupTab(configuration: configuration, openerID: tab.id,
                     select: PopupTabPolicy.selectsNewTab(for: action.modifierFlags))?.webView
+            },
+            isTabSelected: { [weak self, weak tab] in
+                guard let self, let tab else { return false }
+                return self.selectedID == tab.id
             },
             onPopupClosed: { [weak self] id, openerID in
                 guard openerID != nil else { return }
@@ -81,7 +86,7 @@ final class BrowserWindowModel: ObservableObject {
 
     func closeTab(_ id: BrowserTab.ID) {
         guard let tab = tabsByID[id] else { return }
-        if let openerID = tab.openerTabID, tabsByID[openerID] != nil {
+        if selectedID == id, let openerID = tab.openerTabID, tabsByID[openerID] != nil {
             selectedID = openerID
         }
         tab.webView.stopLoading()

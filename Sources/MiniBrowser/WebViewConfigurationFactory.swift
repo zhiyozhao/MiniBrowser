@@ -6,8 +6,12 @@ enum WebViewConfigurationFactory {
     static let safariApplicationName = "Version/18.0 Safari/605.1.15"
 
     static func configure(_ configuration: WKWebViewConfiguration) {
-        AppEnvironment.prepareDataDirectory()
         configuration.applicationNameForUserAgent = safariApplicationName
+        configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
+        MainActor.assumeIsolated { PopupGestureGate.install(in: configuration) }
+        if configuration.websiteDataStore === WKWebsiteDataStore.default() {
+            AppEnvironment.configureWebsiteDataStore(configuration)
+        }
     }
 
     static func make() -> WKWebViewConfiguration {

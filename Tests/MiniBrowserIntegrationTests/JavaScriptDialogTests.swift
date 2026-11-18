@@ -103,4 +103,29 @@ struct JavaScriptDialogTests {
         #expect(try await fixture.evaluate("window.confirmResult") as? Bool == false)
         #expect(try await fixture.evaluate("window.promptResult === null") as? Bool == true)
     }
+
+    @Test("隐藏标签的 alert、confirm、prompt 静默取消")
+    func hiddenTabDialogsAreCancelled() {
+        let tab = BrowserTab(loadsInitialContent: false)
+        let dialogs = DialogStub()
+        let coordinator = WebViewRepresentable.Coordinator(
+            tab: tab,
+            onCreateWebView: { _, _, _ in nil },
+            dialogs: dialogs,
+            isTabSelected: { false }
+        )
+        var alertCompleted = false
+        var confirmResult: Bool?
+        var promptResult: String??
+        coordinator.webView(tab.webView, runJavaScriptAlertPanelWithMessage: "hidden-alert",
+                            initiatedByFrame: WKFrameInfo()) { alertCompleted = true }
+        coordinator.webView(tab.webView, runJavaScriptConfirmPanelWithMessage: "hidden-confirm",
+                            initiatedByFrame: WKFrameInfo()) { confirmResult = $0 }
+        coordinator.webView(tab.webView, runJavaScriptTextInputPanelWithPrompt: "hidden-prompt",
+                            defaultText: "default", initiatedByFrame: WKFrameInfo()) { promptResult = $0 }
+        #expect(alertCompleted)
+        #expect(confirmResult == false)
+        #expect(promptResult == .some(nil))
+        #expect(dialogs.messages.isEmpty)
+    }
 }

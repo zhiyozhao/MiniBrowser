@@ -37,6 +37,47 @@ struct PopupTests {
         #expect(models.allObjects.isEmpty)
     }
 
+    @Test("LRU 只挂三个标签，重新挂载保留 WebView 与委托")
+    func mountCacheRetainsObjectsAndDelegates() {
+        let model = BrowserWindowModel()
+        let host = WebViewStackRepresentable.HostView(maxMountedTabs: 3)
+        model.webViewHost = host
+        host.sync(model: model)
+        let first = model.tabs[0]
+        let webView = first.webView
+        let delegate = webView.navigationDelegate
+        for _ in 0..<6 {
+            model.newTab()
+            host.sync(model: model)
+            #expect(host.subviews.count <= 3)
+        }
+        #expect(webView.superview == nil)
+        model.selectedID = first.id
+        #expect(first.webView === webView)
+        #expect(first.webView.navigationDelegate === delegate)
+        #expect(first.webView.superview === host)
+        #expect(!first.webView.isHidden)
+        #expect(host.subviews.count == 3)
+        for tab in model.tabs { model.closeTab(tab.id) }
+        #expect(host.subviews.isEmpty)
+    }
+
+    @Test("后台标签实际调用 JS 对话框时静默结束")
+    func backgroundDialogsDoNotShowSheets() async throws {
+        let fixture = try await PopupFixture.make()
+        defer { fixture.close() }
+        fixture.model.selectedID = fixture.other.id
+        _ = try await fixture.main.webView.evaluateJavaScript("""
+        alert('hidden'); window.hiddenConfirm=confirm('hidden');
+        window.hiddenPrompt=prompt('hidden'); document.title='hidden-dialogs-done';
+        """)
+        try await waitUntil("hidden dialogs completed") { fixture.main.title == "hidden-dialogs-done" }
+        #expect(try await fixture.main.webView.evaluateJavaScript("hiddenConfirm === false && hiddenPrompt === null") as? Bool == true)
+        #expect(fixture.window.attachedSheet == nil)
+        #expect(fixture.model.selectedID == fixture.other.id)
+        fixture.assertOneWindow()
+    }
+
     @Test("window.open 与带尺寸弹窗均插在 opener 右侧")
     func windowOpenAndSizedPopupBecomeAdjacentTabs() async throws {
         let fixture = try await PopupFixture.make()
@@ -76,6 +117,16 @@ struct PopupTests {
         fixture.assertOneWindow()
     }
 
+    @Test("弹窗附件被取消后自动关闭空标签")
+    func popupAttachmentClosesTab() async throws {
+        let fixture = try await PopupFixture.make()
+        defer { fixture.close() }
+        _ = try await evaluateUserGesture(fixture.main.webView, "window.open('/attachment', '_blank'); void(0)")
+        try await waitUntil("attachment popup closed") { fixture.model.tabs.count == 2 }
+        #expect(fixture.model.selectedID == fixture.main.id)
+        fixture.assertOneWindow()
+    }
+
     @Test("OAuth 跨源重定向回传 postMessage 后关闭并返回 opener")
     func windowOpenOpenerAndClose() async throws {
         let callback = try LocalHTTPServer { _ in .init("""
@@ -87,7 +138,7 @@ struct PopupTests {
         defer { callback.stop() }
         let fixture = try await PopupFixture.make(redirect: callback.baseURL)
         defer { fixture.close() }
-        _ = try await fixture.main.webView.evaluateJavaScript("window.child = window.open('/oauth', '_blank'); void(0)")
+        _ = try await evaluateUserGesture(fixture.main.webView, "window.child = window.open('/oauth', '_blank'); void(0)")
         try await waitUntil("OAuth result and popup removal") {
             fixture.main.title == "oauth-done" && fixture.model.tabs.count == 2
         }
@@ -100,7 +151,7 @@ struct PopupTests {
     func blankWriteAndImmediateClose() async throws {
         let fixture = try await PopupFixture.make()
         defer { fixture.close() }
-        _ = try await fixture.main.webView.evaluateJavaScript("""
+        _ = try await evaluateUserGesture(fixture.main.webView, """
         window.child=window.open('about:blank','_blank');
         child.document.write('<title>written</title><body>body preserved</body>'); child.document.close();
         """)
@@ -109,7 +160,7 @@ struct PopupTests {
         #expect(try await popup.webView.evaluateJavaScript("document.body.textContent") as? String == "body preserved")
         _ = try await fixture.main.webView.evaluateJavaScript("child.close()")
         try await waitUntil("popup removed") { fixture.model.tabs.count == 2 }
-        _ = try await fixture.main.webView.evaluateJavaScript("window.open('about:blank','_blank').close()")
+        _ = try await evaluateUserGesture(fixture.main.webView, "window.open('about:blank','_blank').close()")
         try await waitUntil("immediate popup removed") { fixture.model.tabs.count == 2 }
         #expect(fixture.model.selectedID == fixture.main.id)
         fixture.assertOneWindow()
@@ -120,7 +171,7 @@ struct PopupTests {
         let fixture = try await PopupFixture.make()
         defer { fixture.close() }
         let first = try await fixture.open("window.open('/child','_blank')")
-        _ = try await first.webView.evaluateJavaScript("window.open('/child','_blank'); void(0)")
+        _ = try await evaluateUserGesture(first.webView, "window.open('/child','_blank'); void(0)")
         try await waitUntil("nested tab") { fixture.model.tabs.count == 4 }
         let nested = try #require(fixture.model.tabs.first { $0.openerTabID == first.id })
         #expect(fixture.model.tabs[2] === nested)
@@ -140,6 +191,7 @@ struct PopupTests {
         defer { fixture.close() }
         let action = CommandLinkAction(url: fixture.server.baseURL.appendingPathComponent("child"))
         let delegate = try #require(fixture.main.webView.navigationDelegate as? WebViewRepresentable.Coordinator)
+        _ = try await evaluateUserGesture(fixture.main.webView, "void(0)")
         var policy: WKNavigationActionPolicy?
         delegate.webView(fixture.main.webView, decidePolicyFor: action) { policy = $0 }
         #expect(policy == .cancel)
@@ -155,23 +207,41 @@ struct PopupTests {
     func automaticPopupMatchesWebKitDefaultAndOneWindow() async throws {
         let fixture = try await PopupFixture.make()
         defer { fixture.close() }
-        let rawTab = BrowserTab(loadsInitialContent: false)
-        let control = DefaultPopupDelegate()
-        rawTab.webView.uiDelegate = control
-        // Reuse this one test window for the unmodified WebKit control.
-        let content = fixture.window.contentViewController
-        fixture.window.contentViewController = nil
-        fixture.window.contentView = rawTab.webView
-        rawTab.webView.loadHTMLString(Self.automaticPopupHTML, baseURL: fixture.server.baseURL)
-        try await waitUntil("control evaluated automatic popup") { rawTab.webView.title == "auto-done" }
-        let expected = try await rawTab.webView.evaluateJavaScript("window.autoOpened") as? Bool
-        rawTab.webView.stopLoading()
-        fixture.window.contentViewController = content
-        fixture.main.webView.loadHTMLString(Self.automaticPopupHTML, baseURL: fixture.server.baseURL)
-        try await waitUntil("product evaluated automatic popup") { fixture.main.title == "auto-done" }
-        let actual = try await fixture.main.webView.evaluateJavaScript("window.autoOpened") as? Bool
-        #expect(actual == expected)
-        #expect(fixture.main.webView.configuration.preferences.javaScriptCanOpenWindowsAutomatically == rawTab.webView.configuration.preferences.javaScriptCanOpenWindowsAutomatically)
+        fixture.main.webView.loadHTMLString(Self.popupBurstHTML, baseURL: fixture.server.baseURL)
+        try await waitUntil("automatic popup burst completed") { fixture.main.title == "timer-done" }
+        #expect(try await fixture.main.webView.evaluateJavaScript("window.timerOpened") as? Int == 0)
+        #expect(fixture.model.tabs.count == 2)
+        #expect(fixture.main.webView.configuration.preferences.javaScriptCanOpenWindowsAutomatically == false)
+        _ = try await evaluateUserGesture(fixture.main.webView, "document.getElementById('burst').click()")
+        try await waitUntil("user popup burst completed") { fixture.main.title == "burst-done" }
+        #expect(try await fixture.main.webView.evaluateJavaScript("window.userOpened") as? Int == 1)
+        #expect(fixture.model.tabs.count == 3)
+        fixture.assertOneWindow()
+    }
+
+    @Test("关闭非当前弹窗不改变选中标签")
+    func closingBackgroundPopupKeepsSelection() async throws {
+        let fixture = try await PopupFixture.make()
+        defer { fixture.close() }
+        let popup = try await fixture.open("window.open('/child', '_blank')")
+        fixture.model.selectedID = fixture.other.id
+        fixture.model.closeTab(popup.id)
+        #expect(fixture.model.selectedID == fixture.other.id)
+        fixture.assertOneWindow()
+    }
+
+    @Test("切换和 OAuth 弹窗关闭后焦点落在当前 WebView")
+    func switchingAndPopupCloseRestoreWebViewFocus() async throws {
+        let fixture = try await PopupFixture.make()
+        defer { fixture.close() }
+        fixture.model.selectedID = fixture.other.id
+        #expect(fixture.window.firstResponder === fixture.other.webView)
+        let popup = try await fixture.open("window.open('/child', '_blank')")
+        try await waitUntil("popup WebView focus") { fixture.window.firstResponder === popup.webView }
+        _ = try await popup.webView.evaluateJavaScript("window.close()")
+        try await waitUntil("popup closed") { fixture.model.tabs.count == 2 }
+        #expect(fixture.model.selectedID == fixture.main.id)
+        #expect(fixture.window.firstResponder === fixture.main.webView)
         fixture.assertOneWindow()
     }
 
@@ -189,13 +259,14 @@ struct PopupTests {
         fixture.assertOneWindow()
     }
 
-    private static let automaticPopupHTML = """
-    <html><title>auto-start</title><script>
-    setTimeout(() => { window.autoOpened=window.open('about:blank','_blank')!==null; document.title='auto-done'; }, 0);
-    </script></html>
+    private static let popupBurstHTML = """
+    <html><title>burst-start</title><body><button id="burst" onclick="
+    window.userOpened=0; for (let i=0;i<50;i++) { if (window.open('/child?user='+i, '_blank')) window.userOpened++; }
+    document.title='burst-done';">burst</button><script>
+    setTimeout(() => { window.timerOpened=0; for (let i=0;i<20;i++) { if (window.open('/child?timer='+i, '_blank')) window.timerOpened++; } document.title='timer-done'; }, 0);
+    </script></body></html>
     """
 }
-
 @MainActor
 private final class PopupFixture {
     let server: LocalHTTPServer
@@ -203,13 +274,17 @@ private final class PopupFixture {
     let other: BrowserTab
     let model: BrowserWindowModel
     let window: NSWindow
+    let delegate: AppDelegate
 
     static func make(redirect: URL? = nil) async throws -> PopupFixture {
         let server = try LocalHTTPServer { request in
             if request.path == "/oauth", let redirect {
                 return .init("", status: "302 Found", headers: ["Location": redirect.absoluteString])
             }
-            if request.path == "/child" { return .init("<html><title>child-ready</title><body>child</body></html>") }
+            if request.path.hasPrefix("/child") { return .init("<html><title>child-ready</title><body>child</body></html>") }
+            if request.path == "/attachment" {
+                return .init(data: Data("download".utf8), headers: ["Content-Disposition": "attachment; filename=popup.txt"])
+            }
             return .init("""
             <html><title>main-ready</title><body>
             <a id="link" href="/child" target="_blank">open</a>
@@ -228,38 +303,33 @@ private final class PopupFixture {
 
     init(server: LocalHTTPServer) {
         self.server = server
-        main = BrowserTab(url: server.baseURL)
-        model = BrowserWindowModel(initialTab: main)
+        _ = NSApplication.shared
+        delegate = AppDelegate()
+        delegate.applicationDidFinishLaunching(Notification(name: NSApplication.didFinishLaunchingNotification))
+        let controller = delegate.windowControllers[0]
+        model = controller.model
+        window = controller.window!
+        main = model.selectedTab!
+        main.webView.load(URLRequest(url: server.baseURL))
         other = model.newTab()
         model.selectedID = main.id
-        window = NSWindow(contentRect: NSRect(x: -5000, y: -5000, width: 1000, height: 700),
-            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-        window.isReleasedWhenClosed = false
-        if let screen = NSScreen.screens.first(where: { $0.localizedName == "Mi Monitor" }) {
-            window.setFrameOrigin(NSPoint(x: screen.visibleFrame.minX + 80, y: screen.visibleFrame.minY + 80))
-        }
-        let hosting = NSHostingController(rootView: BrowserView(model: model))
-        hosting.sizingOptions = []
-        window.contentViewController = hosting
-        window.orderFront(nil)
         window.setContentSize(NSSize(width: 1000, height: 700))
     }
 
     func open(_ script: String) async throws -> BrowserTab {
         model.selectedID = main.id
-        _ = try await main.webView.evaluateJavaScript(script + "; void(0)")
+        _ = try await evaluateUserGesture(main.webView, script + "; void(0)")
         try await waitUntil("popup ready") { model.tabs.contains { $0.openerTabID == main.id && $0.title == "child-ready" } }
         return try #require(model.tabs.first { $0.openerTabID == main.id })
     }
 
     func assertOneWindow(sourceLocation: SourceLocation = #_sourceLocation) {
-        let windows = NSApp.windows.filter { $0.isVisible && $0.styleMask.contains(.titled) }
-        let browserWindows = windows.filter { candidate in
-            model.tabs.contains { $0.webView.window === candidate }
+        let windows = NSApp.windows.filter {
+            $0.isVisible && !($0 is NSColorPanel) && $0.sheetParent == nil
         }
-        #expect(browserWindows.count == 1, sourceLocation: sourceLocation)
-        #expect(browserWindows.first === self.window, sourceLocation: sourceLocation)
-        #expect(model.tabs.allSatisfy { $0.webView.window === self.window }, sourceLocation: sourceLocation)
+        #expect(windows.count == 1, sourceLocation: sourceLocation)
+        #expect(windows.first === self.window, sourceLocation: sourceLocation)
+        #expect(model.tabs.allSatisfy { $0.webView.window == nil || $0.webView.window === self.window }, sourceLocation: sourceLocation)
     }
 
     func close() {
@@ -269,7 +339,6 @@ private final class PopupFixture {
         server.stop()
     }
 }
-
 /// Exercise the public navigation-delegate path without global input synthesis.
 private final class CommandLinkAction: WKNavigationAction {
     let url: URL
@@ -278,15 +347,4 @@ private final class CommandLinkAction: WKNavigationAction {
     override var navigationType: WKNavigationType { .linkActivated }
     override var modifierFlags: NSEvent.ModifierFlags { .command }
     override var targetFrame: WKFrameInfo? { WKFrameInfo() }
-}
-
-@MainActor
-private final class DefaultPopupDelegate: NSObject, WKUIDelegate {
-    var children: [WKWebView] = []
-    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
-                 for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-        let child = WKWebView(frame: .zero, configuration: configuration)
-        children.append(child)
-        return child
-    }
 }

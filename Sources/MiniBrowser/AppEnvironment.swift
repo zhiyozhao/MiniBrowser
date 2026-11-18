@@ -1,4 +1,5 @@
 import Foundation
+import WebKit
 
 enum AppEnvironment {
     static let defaultsSuite = option(
@@ -18,6 +19,16 @@ enum AppEnvironment {
 
     private static let preparationLock = NSLock()
     private static var didPrepareDataDirectory = false
+    private static let isolatedWebsiteDataStoreID = UUID()
+    private static let isolatedWebsiteDataStore: WKWebsiteDataStore = {
+        if ProcessInfo.processInfo.environment["MINIBROWSER_NONPERSISTENT"] == "1" {
+            return .nonPersistent()
+        }
+        if #available(macOS 14.0, *) {
+            return WKWebsiteDataStore(forIdentifier: isolatedWebsiteDataStoreID)
+        }
+        return .nonPersistent()
+    }()
 
     static func option(environmentKey: String, argument: String,
                        environment: [String: String] = ProcessInfo.processInfo.environment,
@@ -28,8 +39,9 @@ enum AppEnvironment {
         return value.isEmpty ? nil : value
     }
 
-    /// cfprefsd 不随 HOME 隔离，因此偏好单独走 suite；WebKit 数据则在首次使用前
-    /// 通过 HOME/CFFIXED_USER_HOME 指向副本目录。
+    /// The test data directory is retained as a namespace for the isolated
+    /// WebKit store. It must not rewrite HOME: WebKit and Security use HOME to
+    /// locate the user's keychain, and changing it can trigger keychain UI.
     static func prepareDataDirectory() {
         preparationLock.lock()
         defer { preparationLock.unlock() }
@@ -37,7 +49,15 @@ enum AppEnvironment {
         didPrepareDataDirectory = true
         let directory = URL(fileURLWithPath: dataDirectoryPath, isDirectory: true)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        setenv("HOME", directory.path, 1)
-        setenv("CFFIXED_USER_HOME", directory.path, 1)
+    }
+
+    static func configureWebsiteDataStore(_ configuration: WKWebViewConfiguration) {
+        prepareDataDirectory()
+        guard dataDirectoryPath != nil else {
+            return
+        }
+        // macOS 13 has no identifier-based persistent store. A non-persistent
+        // store is the safe isolation fallback; make check uses it on all OSes.
+        configuration.websiteDataStore = isolatedWebsiteDataStore
     }
 }

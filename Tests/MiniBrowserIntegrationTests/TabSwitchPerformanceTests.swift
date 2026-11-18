@@ -27,7 +27,7 @@ struct TabSwitchPerformanceTests {
         defer { server.stop() }
         let environment = ProcessInfo.processInfo.environment
         let realPages = environment["MINIBROWSER_REAL_PAGES"] == "1"
-        let urls = realPages ? [
+        let realPageURLs = [
             "https://www.theguardian.com/world", "https://www.theguardian.com/international",
             "https://www.cnn.com", "https://www.theguardian.com/technology",
             "https://developer.apple.com/documentation/webkit", "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
@@ -35,7 +35,9 @@ struct TabSwitchPerformanceTests {
             "https://en.wikipedia.org/wiki/Web_browser", "https://www.bilibili.com",
             "https://www.youtube.com/watch?v=jfKfPfyJRdk", "https://github.com/swiftlang/swift",
             "https://www.notion.com/help"
-        ].compactMap(URL.init(string:)) : (0..<12).map { server.baseURL.appendingPathComponent("heavy/\($0)") }
+        ].compactMap(URL.init(string:))
+        let requestedCount = max(12, Int(environment["MINIBROWSER_PERF_TAB_COUNT"] ?? "12") ?? 12)
+        let urls = realPages ? realPageURLs : (0..<requestedCount).map { server.baseURL.appendingPathComponent("heavy/\($0)") }
         let model = BrowserWindowModel(initialTab: BrowserTab(url: urls[0]))
         for url in urls.dropFirst() { model.newTab(url: url) }
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1100, height: 760),
@@ -62,6 +64,7 @@ struct TabSwitchPerformanceTests {
         }
 
         var pageResults: [[String: String]] = []
+        var pageFailures: [String] = []
         // Let the initially presented tab finish its first navigation before
         // detaching it in the original checkout. Otherwise the old delegate
         // lifetime bug leaves that navigation's policy decision pending.
@@ -88,7 +91,11 @@ struct TabSwitchPerformanceTests {
             } catch {
                 print("LOAD FAILURE url=\(tab.webView.url?.absoluteString ?? "nil") title=\(tab.webView.title ?? "nil") loading=\(tab.webView.isLoading) window=\(tab.webView.window != nil)")
                 pageResults.append(["url": tab.webView.url?.absoluteString ?? "", "error": "\(error)"])
-                if !realPages { throw error }
+                if realPages {
+                    pageFailures.append(tab.webView.url?.absoluteString ?? "(unknown URL)")
+                } else {
+                    throw error
+                }
             }
             if realPages { tab.webView.stopLoading() }
         }
@@ -132,20 +139,22 @@ struct TabSwitchPerformanceTests {
             #expect(tab.webView.window === window && !tab.webView.isHiddenOrHasHiddenAncestor)
             let cpuEnd = clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)
             let visibleEnd = CACurrentMediaTime()
-            _ = try await tab.webView.takeSnapshot(configuration: nil)
-            let snapshotEnd = CACurrentMediaTime()
             if index >= 12 {
                 mainThread.append(Double(cpuEnd-cpuStart)/1_000_000)
                 synchronous.append((mainEnd-start)*1000)
                 visible.append((visibleEnd-start)*1000)
-                snapshot.append((snapshotEnd-start)*1000)
+                if index % 12 == 0 {
+                    _ = try await tab.webView.takeSnapshot(configuration: nil)
+                    snapshot.append((CACurrentMediaTime()-start)*1000)
+                }
             }
         }
         func stats(_ values: [Double]) -> [String: Double] {
             let sorted = values.sorted()
             return ["p50": sorted[sorted.count/2], "p95": sorted[Int(ceil(Double(sorted.count)*0.95))-1], "max": sorted.last!]
         }
-        let report: [String: Any] = ["realPages": realPages, "samples": mainThread.count,
+        let report: [String: Any] = ["realPages": realPages, "pagesMeasured": urls.map(\.absoluteString),
+            "pageFailures": pageFailures, "samples": mainThread.count,
             "mainThreadMs": stats(mainThread), "synchronousActionMs": stats(synchronous),
             "viewVisibleMs": stats(visible), "snapshotReadyMs": stats(snapshot), "pages": pageResults]
         let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
@@ -154,6 +163,9 @@ struct TabSwitchPerformanceTests {
         sampler?.waitUntilExit()
         if let path = environment["MINIBROWSER_BENCHMARK_SHOT"] {
             model.selectedID = tabs[0].id
+            await withCheckedContinuation { continuation in
+                DispatchQueue.main.async { continuation.resume() }
+            }
             hosting.view.layoutSubtreeIfNeeded()
             window.displayIfNeeded()
             CATransaction.flush()
@@ -165,5 +177,6 @@ struct TabSwitchPerformanceTests {
             try data.write(to: URL(fileURLWithPath: path))
         }
         #expect(stats(mainThread)["p95"]! < 16)
+        #expect(pageFailures.isEmpty, "real page load failures: \(pageFailures.joined(separator: ", "))")
     }
 }

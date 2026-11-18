@@ -4,8 +4,8 @@
 
 | 项目 | 最终做法 | 自动证据 |
 | --- | --- | --- |
-| P1 弹窗 | `window.open` / `target=_blank` 同步返回真实 WebView，插入 opener 右侧的新标签；所有网页弹窗留在当前 NSWindow，复用 configuration 和 websiteDataStore，保留 opener、POST 与 `window.close()`。⌘点击后台打开。 | `PopupTests.windowOpenAndSizedPopupBecomeAdjacentTabs`、`targetBlankPreservesPOST`、`windowOpenOpenerAndClose`、`popupScenariosDoNotCreateWindows`：尺寸弹窗、链接、POST、OAuth、`about:blank`、嵌套关闭和单窗口均覆盖。 |
-| 标签切换性能 | 一个 AppKit host 保持所有标签的 WKWebView，切换只更新可见性和 z-order，不重建 NSViewRepresentable。 | `TabSwitchPerformanceTests.switchingLoadedTabs`：12 个真实页面或本地重页面、120 次切换，主线程同步动作与可见页面 p95 <16ms；另验证加载中切走不丢委托。 |
+| P1 弹窗 | `window.open` / `target=_blank` 同步返回真实 WebView，插入 opener 右侧的新标签；关闭自动弹窗、一次用户手势一个 permit、附件空标签关闭；所有网页弹窗留在当前 NSWindow，复用 configuration 和 websiteDataStore，保留 opener、POST 与 `window.close()`。⌘点击后台打开。 | `PopupTests.automaticPopupMatchesWebKitDefaultAndOneWindow`、`popupAttachmentClosesTab`、`closingBackgroundPopupKeepsSelection`、`switchingAndPopupCloseRestoreWebViewFocus`、`popupScenariosDoNotCreateWindows` 等。 |
+| 标签切换性能与内存 | WKWebView/委托常驻，host 默认只挂当前和最近 4 个，未挂载标签切换时重新挂载原对象。 | `TabSwitchPerformanceTests.switchingLoadedTabs`：真实模式页面加载失败即失败并报告 URL；20 个本地重页面全挂、挂 3 个、挂 4 个峰值 RSS 实测约 1.466/1.397/1.531 GB；挂 4 个未挂载标签切换主线程 p95 13.29 ms。 |
 | P3 JS 对话框 | alert、confirm、prompt 使用所属窗口的原生 sheet。 | `JavaScriptDialogTests`：本地页面覆盖确认、输入以及取消后的 `false` / `null`。 |
 | P8 有效证书 | 先执行 `SecTrustEvaluateWithError`，有效证书走 `.performDefaultHandling`，不进入错误页。 | `ValidCertificateTests`：本地 CA 与 CA 签发的 localhost 证书真实加载。CA 只注入该次 `SecTrust` 评估，测试用 `validTrustHandler` 避免修改系统信任；生产默认处置不变。修复前测试超时，修复后通过。 |
 | P8 子资源隔离 | 只有质询源与主框架导航源一致时才显示错误页；子资源失败只拒绝该请求。 | `SubresourceCertificateTests`：HTTP 主页面 fetch 坏证书 HTTPS 子资源，修复前主页面被劫持，修复后 URL、标题和正文保持。 |

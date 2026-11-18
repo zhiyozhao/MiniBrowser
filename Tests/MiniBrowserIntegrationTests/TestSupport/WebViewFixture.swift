@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import WebKit
+@testable import MiniBrowser
 
 struct WebViewTestError: Error, CustomStringConvertible {
     let description: String
@@ -14,7 +15,7 @@ final class WebViewFixture {
     convenience init(configuration: WKWebViewConfiguration? = nil) {
         self.init(webView: WKWebView(
             frame: NSRect(x: 0, y: 0, width: 520, height: 640),
-            configuration: configuration ?? WKWebViewConfiguration()
+            configuration: configuration ?? WebViewConfigurationFactory.make()
         ))
     }
 
@@ -56,6 +57,18 @@ final class WebViewFixture {
         window.contentView = nil
         window.close()
     }
+}
+
+/// evaluateJavaScript carries WebKit user activation. Match that native test
+/// action with a permit through the same isolated bridge as a trusted click,
+/// without synthesizing global keyboard or mouse input.
+@MainActor
+@discardableResult
+func evaluateUserGesture(_ webView: WKWebView, _ script: String) async throws -> Any? {
+    _ = try await webView.callAsyncJavaScript(
+        "webkit.messageHandlers.minibrowserPopupGesture.postMessage('test-native-action');",
+        arguments: [:], in: nil, contentWorld: .defaultClient)
+    return try await webView.evaluateJavaScript(script)
 }
 
 @MainActor

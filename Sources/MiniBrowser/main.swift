@@ -4,7 +4,7 @@ import WebKit
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var windowControllers: [BrowserWindowController] = []
+    private(set) var windowControllers: [BrowserWindowController] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMainMenu()
@@ -40,13 +40,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.toolbar = toolbar
         window.toolbarStyle = .unifiedCompact
         window.center()
-        let hostingController = NSHostingController(
-            rootView: BrowserView(model: BrowserWindowModel(initialTab: initialTab))
-        )
+        let model = BrowserWindowModel(initialTab: initialTab)
+        let hostingController = NSHostingController(rootView: BrowserView(model: model))
         hostingController.sizingOptions = [] // 不要用 SwiftUI 内容尺寸反推窗口大小
         window.contentViewController = hostingController
 
-        let controller = BrowserWindowController(window: window)
+        let controller = BrowserWindowController(window: window, model: model)
         controller.onClose = { [weak self] closing in
             self?.windowControllers.removeAll { $0 === closing }
         }
@@ -54,6 +53,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // HostingController 会把窗口缩到最小，显示后强制恢复默认尺寸
         window.setContentSize(contentSize)
         window.center()
+        if AppEnvironment.dataDirectoryPath != nil,
+           let screen = NSScreen.screens.first(where: { $0.localizedName == "Mi Monitor" }) {
+            window.setFrameOrigin(NSPoint(x: screen.visibleFrame.minX + 80, y: screen.visibleFrame.minY + 80))
+        }
         windowControllers.append(controller)
         return controller
     }
@@ -95,8 +98,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 /// 窗口控制器：用 delegate 回调代替 NotificationCenter 观察，避免观察者残留
-private final class BrowserWindowController: NSWindowController, NSWindowDelegate {
+final class BrowserWindowController: NSWindowController, NSWindowDelegate {
+    let model: BrowserWindowModel
     var onClose: ((BrowserWindowController) -> Void)?
+
+    init(window: NSWindow, model: BrowserWindowModel) {
+        self.model = model
+        super.init(window: window)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override func showWindow(_ sender: Any?) {
         super.showWindow(sender)
@@ -104,6 +115,8 @@ private final class BrowserWindowController: NSWindowController, NSWindowDelegat
     }
 
     func windowWillClose(_ notification: Notification) {
+        for tab in model.tabs { model.closeTab(tab.id) }
+        window?.contentViewController = nil
         onClose?(self)
     }
 }

@@ -38,14 +38,16 @@ struct BrowserView: View {
     }
 }
 
-/// Keeps every tab's WKWebView attached to one AppKit host. Switching a tab
-/// only changes visibility and z-order; it does not tear down an NSView
-/// representable or recreate a web view on the main thread.
+/// Keeps the current and recently used tab WKWebViews attached to one AppKit
+/// host. Other tab objects stay alive with their delegates and are reattached
+/// on demand; switching never creates a new WKWebView.
 struct WebViewStackRepresentable: NSViewRepresentable {
     @ObservedObject var model: BrowserWindowModel
 
     func makeNSView(context: Context) -> HostView {
-        let host = HostView()
+        let configuredLimit = Int(ProcessInfo.processInfo.environment["MINIBROWSER_MOUNTED_TABS"] ?? "")
+            .map { max(1, min($0, 100)) } ?? HostView.defaultMaxMountedTabs
+        let host = HostView(maxMountedTabs: configuredLimit)
         model.webViewHost = host
         host.sync(model: model)
         return host
@@ -56,42 +58,82 @@ struct WebViewStackRepresentable: NSViewRepresentable {
     }
 
     final class HostView: NSView {
+        static let defaultMaxMountedTabs = 4
+        let maxMountedTabs: Int
         private var viewsByID: [BrowserTab.ID: WKWebView] = [:]
         private var selectedID: BrowserTab.ID?
+        private var recentIDs: [BrowserTab.ID] = []
+        private(set) var mountedTabIDs: Set<BrowserTab.ID> = []
+
+        init(maxMountedTabs: Int = defaultMaxMountedTabs) {
+            self.maxMountedTabs = max(1, maxMountedTabs)
+            super.init(frame: .zero)
+        }
+
+        required init?(coder: NSCoder) {
+            maxMountedTabs = Self.defaultMaxMountedTabs
+            super.init(coder: coder)
+        }
 
         func sync(model: BrowserWindowModel) {
             let tabs = model.tabs
             let ids = Set(tabs.map(\.id))
-            for subview in subviews {
-                if let webView = subview as? WKWebView,
-                   !tabs.contains(where: { $0.webView === webView }) {
-                    webView.stopLoading()
-                    webView.removeFromSuperview()
-                }
-            }
-            for tab in tabs {
-                if tab.webView.superview !== self {
-                    tab.webView.isHidden = true
-                    tab.webView.frame = bounds
-                    tab.webView.autoresizingMask = [.width, .height]
-                    addSubview(tab.webView)
-                }
-                viewsByID[tab.id] = tab.webView
-            }
-            viewsByID = viewsByID.filter { ids.contains($0.key) }
-            select(model.selectedID)
+            viewsByID = Dictionary(uniqueKeysWithValues: tabs.map { ($0.id, $0.webView) })
+            recentIDs.removeAll { !ids.contains($0) }
+            updateMounts(preferredID: model.selectedID)
+            show(model.selectedID)
         }
 
         func select(_ id: BrowserTab.ID?) {
-            guard selectedID != id || id.flatMap({ viewsByID[$0] })?.isHidden == true else { return }
-            if let selectedID { viewsByID[selectedID]?.isHidden = true }
-            selectedID = id
-            if let id, let view = viewsByID[id] {
-                view.isHidden = false
-                if let window, let responder = window.firstResponder as? NSView,
-                   responder.isDescendant(of: self) {
-                    window.makeFirstResponder(view)
+            updateMounts(preferredID: id)
+            show(id)
+        }
+
+        private func updateMounts(preferredID: BrowserTab.ID?) {
+            if let preferredID {
+                recentIDs.removeAll { $0 == preferredID }
+                recentIDs.insert(preferredID, at: 0)
+            }
+            let desiredIDs = Set(recentIDs.prefix(maxMountedTabs))
+            for subview in subviews {
+                guard let webView = subview as? WKWebView else { continue }
+                guard let id = viewsByID.first(where: { $0.value === webView })?.key else {
+                    webView.removeFromSuperview()
+                    continue
                 }
+                if !desiredIDs.contains(id) {
+                    webView.isHidden = true
+                    webView.removeFromSuperview()
+                }
+            }
+            for id in desiredIDs {
+                guard let webView = viewsByID[id] else { continue }
+                if webView.superview !== self {
+                    webView.isHidden = true
+                    webView.frame = bounds
+                    webView.autoresizingMask = [.width, .height]
+                    addSubview(webView)
+                }
+            }
+            mountedTabIDs = desiredIDs
+        }
+
+        private func show(_ id: BrowserTab.ID?) {
+            guard selectedID != id || id.flatMap({ viewsByID[$0] })?.isHidden == true else { return }
+            for (tabID, view) in viewsByID where mountedTabIDs.contains(tabID) {
+                view.isHidden = tabID != id
+            }
+            selectedID = id
+            if let id, let view = viewsByID[id], mountedTabIDs.contains(id) {
+                view.isHidden = false
+                window?.makeFirstResponder(view)
+                DispatchQueue.main.async { [weak self, weak view] in
+                    guard let self, let view, self.selectedID == id,
+                          view.superview === self, !view.isHidden else { return }
+                    self.window?.makeFirstResponder(view)
+                }
+            } else {
+                window?.makeFirstResponder(nil)
             }
         }
 
