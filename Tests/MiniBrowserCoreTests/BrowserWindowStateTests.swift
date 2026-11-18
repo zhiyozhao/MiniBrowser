@@ -22,6 +22,32 @@ struct BrowserWindowStateTests {
         #expect(state.selectedID == second)
     }
 
+    @Test("弹窗标签插入打开它的标签右侧")
+    func insertPopupAfterOpener() {
+        let first = UUID()
+        let second = UUID()
+        let popup = UUID()
+        var state = BrowserWindowState(initialTabID: first)
+        state.newTab(id: second)
+        state.selectedID = first
+        state.insertTab(id: popup, after: first)
+        #expect(state.tabIDs == [first, popup, second])
+        #expect(state.selectedID == popup)
+    }
+
+    @Test("后台弹窗插入右侧但不抢焦点")
+    func insertBackgroundPopupAfterOpener() {
+        let first = UUID()
+        let second = UUID()
+        let popup = UUID()
+        var state = BrowserWindowState(initialTabID: first)
+        state.newTab(id: second)
+        state.selectedID = first
+        state.insertTab(id: popup, after: first, select: false)
+        #expect(state.tabIDs == [first, popup, second])
+        #expect(state.selectedID == first)
+    }
+
     @Test("关闭选中的中间标签后选中后一个")
     func closeSelectedMiddleTab() {
         let ids = [UUID(), UUID(), UUID()]

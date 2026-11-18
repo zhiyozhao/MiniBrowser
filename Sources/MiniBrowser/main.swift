@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import WebKit
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowControllers: [BrowserWindowController] = []
 
@@ -16,14 +17,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func newWindowMenuAction(_ sender: Any?) {
         openNewWindow()
-    }
-
-    func openPopup(configuration: WKWebViewConfiguration,
-                   navigationAction: WKNavigationAction,
-                   windowFeatures: WKWindowFeatures) -> WKWebView? {
-        let tab = BrowserTab(configuration: configuration, loadsInitialContent: false)
-        openNewWindow(initialTab: tab, contentSize: NSSize(width: 520, height: 640))
-        return tab.webView
     }
 
     @discardableResult
@@ -117,8 +110,10 @@ private final class BrowserWindowController: NSWindowController, NSWindowDelegat
 
 AppEnvironment.prepareDataDirectory()
 let app = NSApplication.shared
-let delegate = AppDelegate()
-app.delegate = delegate
-app.setActivationPolicy(.regular)
-app.activate(ignoringOtherApps: true)
-app.run()
+MainActor.assumeIsolated {
+    let delegate = AppDelegate()
+    app.delegate = delegate
+    app.setActivationPolicy(.regular)
+    app.activate(ignoringOtherApps: true)
+    app.run()
+}

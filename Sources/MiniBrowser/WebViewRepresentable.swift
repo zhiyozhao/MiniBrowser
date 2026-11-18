@@ -29,6 +29,7 @@ struct WebViewRepresentable: NSViewRepresentable {
         private let onCreateWebView: PopupWebViewFactory
         private let dialogs: JavaScriptDialogHandling
         private let serverTrustSession: ServerTrustSession
+        private let onPopupClosed: ((BrowserTab.ID, BrowserTab.ID?) -> Void)?
         private let validTrustHandler: ((SecTrust, @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) -> Void)?
         private var observations: [NSKeyValueObservation] = []
         private var lastMainFrameURL: URL?
@@ -48,12 +49,14 @@ struct WebViewRepresentable: NSViewRepresentable {
              onCreateWebView: @escaping PopupWebViewFactory,
              dialogs: JavaScriptDialogHandling? = nil,
              serverTrustSession: ServerTrustSession? = nil,
-             validTrustHandler: ((SecTrust, @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) -> Void)? = nil) {
+             validTrustHandler: ((SecTrust, @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) -> Void)? = nil,
+             onPopupClosed: ((BrowserTab.ID, BrowserTab.ID?) -> Void)? = nil) {
             self.tab = tab
             self.onCreateWebView = onCreateWebView
             self.dialogs = dialogs ?? AppKitJavaScriptDialogs()
             self.serverTrustSession = serverTrustSession ?? .shared
             self.validTrustHandler = validTrustHandler
+            self.onPopupClosed = onPopupClosed
             super.init()
 
             let webView = tab.webView
@@ -126,6 +129,17 @@ struct WebViewRepresentable: NSViewRepresentable {
                 return
             }
             guard WebNavigationPolicy.allows(url) else {
+                decisionHandler(.cancel)
+                return
+            }
+            if navigationAction.navigationType == .linkActivated,
+               navigationAction.modifierFlags.contains(.command),
+               navigationAction.targetFrame != nil {
+                let configuration = WebViewConfigurationFactory.make()
+                configuration.websiteDataStore = webView.configuration.websiteDataStore
+                if let destination = onCreateWebView(configuration, navigationAction, WKWindowFeatures()) {
+                    destination.load(navigationAction.request)
+                }
                 decisionHandler(.cancel)
                 return
             }
@@ -254,7 +268,7 @@ struct WebViewRepresentable: NSViewRepresentable {
         }
 
         func webViewDidClose(_ webView: WKWebView) {
-            webView.window?.close()
+            onPopupClosed?(tab.id, tab.openerTabID)
         }
     }
 }

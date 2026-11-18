@@ -27,6 +27,10 @@ final class WebViewFixture {
             defer: false
         )
         window.isReleasedWhenClosed = false
+        if let screen = NSScreen.screens.first(where: { $0.localizedName == "Mi Monitor" }) {
+            window.setFrameOrigin(NSPoint(x: screen.visibleFrame.minX + 80,
+                                           y: screen.visibleFrame.minY + 80))
+        }
         window.contentView = webView
         window.orderFront(nil)
     }

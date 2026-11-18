@@ -1,35 +1,21 @@
 import SwiftUI
+import WebKit
 
 /// 一个浏览器窗口：工具栏（与红绿灯同行）+ 标签栏 + 网页区域
+@MainActor
 struct BrowserView: View {
     @StateObject private var model: BrowserWindowModel
-    private let onCreateWebView: PopupWebViewFactory
-
-    init(model: BrowserWindowModel = BrowserWindowModel(),
-         onCreateWebView: @escaping PopupWebViewFactory = { configuration, action, features in
-             (NSApp.delegate as? AppDelegate)?.openPopup(
-                 configuration: configuration,
-                 navigationAction: action,
-                 windowFeatures: features
-             )
-         }) {
-        _model = StateObject(wrappedValue: model)
-        self.onCreateWebView = onCreateWebView
+    init(model: BrowserWindowModel? = nil) {
+        _model = StateObject(wrappedValue: model ?? BrowserWindowModel())
     }
 
     var body: some View {
         VStack(spacing: 0) {
             if let tab = model.selectedTab {
                 TopBarView(tab: tab, model: model)
-                    .id(tab.id)
             }
             Divider()
-            if let tab = model.selectedTab {
-                WebViewRepresentable(tab: tab, onCreateWebView: onCreateWebView)
-                    .id(tab.id)
-            } else {
-                Spacer()
-            }
+            WebViewStackRepresentable(model: model)
         }
         .ignoresSafeArea() // 内容延伸到标题栏区域，工具栏与红绿灯同一行
         .background(
@@ -48,6 +34,70 @@ struct BrowserView: View {
             NSApp.keyWindow?.close()
         } else {
             model.closeTab(id)
+        }
+    }
+}
+
+/// Keeps every tab's WKWebView attached to one AppKit host. Switching a tab
+/// only changes visibility and z-order; it does not tear down an NSView
+/// representable or recreate a web view on the main thread.
+struct WebViewStackRepresentable: NSViewRepresentable {
+    @ObservedObject var model: BrowserWindowModel
+
+    func makeNSView(context: Context) -> HostView {
+        let host = HostView()
+        model.webViewHost = host
+        host.sync(model: model)
+        return host
+    }
+
+    func updateNSView(_ nsView: HostView, context: Context) {
+        nsView.sync(model: model)
+    }
+
+    final class HostView: NSView {
+        private var viewsByID: [BrowserTab.ID: WKWebView] = [:]
+        private var selectedID: BrowserTab.ID?
+
+        func sync(model: BrowserWindowModel) {
+            let tabs = model.tabs
+            let ids = Set(tabs.map(\.id))
+            for subview in subviews {
+                if let webView = subview as? WKWebView,
+                   !tabs.contains(where: { $0.webView === webView }) {
+                    webView.stopLoading()
+                    webView.removeFromSuperview()
+                }
+            }
+            for tab in tabs {
+                if tab.webView.superview !== self {
+                    tab.webView.isHidden = true
+                    tab.webView.frame = bounds
+                    tab.webView.autoresizingMask = [.width, .height]
+                    addSubview(tab.webView)
+                }
+                viewsByID[tab.id] = tab.webView
+            }
+            viewsByID = viewsByID.filter { ids.contains($0.key) }
+            select(model.selectedID)
+        }
+
+        func select(_ id: BrowserTab.ID?) {
+            guard selectedID != id || id.flatMap({ viewsByID[$0] })?.isHidden == true else { return }
+            if let selectedID { viewsByID[selectedID]?.isHidden = true }
+            selectedID = id
+            if let id, let view = viewsByID[id] {
+                view.isHidden = false
+                if let window, let responder = window.firstResponder as? NSView,
+                   responder.isDescendant(of: self) {
+                    window.makeFirstResponder(view)
+                }
+            }
+        }
+
+        override func layout() {
+            super.layout()
+            for subview in subviews { subview.frame = bounds }
         }
     }
 }
@@ -94,6 +144,9 @@ private struct TopBarView: View {
             if tab.urlText.isEmpty {
                 DispatchQueue.main.async { addressFocused = true }
             }
+        }
+        .onChange(of: tab.id) { _ in
+            addressFocused = tab.urlText.isEmpty
         }
     }
 
@@ -194,16 +247,22 @@ private struct TopBarView: View {
     // MARK: - 标签栏
 
     private var tabBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(model.tabs) { t in
-                    TabChip(tab: t,
-                            isSelected: t.id == model.selectedID,
-                            onSelect: { model.selectedID = t.id },
-                            onClose: { closeTab(t.id) })
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(model.tabs) { t in
+                        TabChip(tab: t,
+                                isSelected: t.id == model.selectedID,
+                                onSelect: { model.selectedID = t.id },
+                                onClose: { closeTab(t.id) })
+                            .id(t.id)
+                    }
                 }
+                .padding(.horizontal, 10)
             }
-            .padding(.horizontal, 10)
+            .onChange(of: model.selectedID) { id in
+                if let id { proxy.scrollTo(id) }
+            }
         }
         .frame(height: 34)
     }

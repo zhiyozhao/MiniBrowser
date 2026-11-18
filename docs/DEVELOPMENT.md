@@ -22,7 +22,7 @@ WebContent 崩溃恢复由 `WebContentRecoveryState` 限制为每个标签页一
 
 证书例外由 `ServerTrustSession` 只存内存中的「scheme/host/port + 叶子证书数据」。首次 serverTrust 质询会取消并显示错误页；用户点击“仍然继续”后重试原 URL，后续相同质询才通过 `URLCredential(trust:)` 接受。继续 URL 含一次性 UUID，只在当前错误页、该次 pending 导航和同一份 `SecTrust` 上有效；任何新的主框架导航都会清空 pending，使用后也立即作废，其他页面不能用固定内部 URL 触发放行。不能写入 UserDefaults、钥匙串或系统信任设置，也不能把例外扩展到其他源或其他证书。
 
-弹窗由 `createWebViewWith` 同步返回真实 WebView，不能改成另开标签或重新加载 URL，否则会丢失 opener、POST 和 `window.close()`。弹窗窗口固定为 520×640，复用 WebKit 传入的 configuration，并显式沿用 opener 的 websiteDataStore。
+弹窗由 `createWebViewWith` 同步返回真实 WebView，并插入 opener 右侧的标签页；不能重新加载 URL，否则会丢失 opener、POST 和 `window.close()`。所有网页弹窗复用当前浏览器窗口，⌘点击在后台打开标签页，普通弹窗切换到新标签。JS alert/confirm/prompt 仍使用原生对话框，但不会创建新窗口。
 
 `BrowserWindowState` 只存 UUID，不持有 WebView。关闭选中标签时优先选择原位置的后一个标签，末尾则选择前一个；关闭未选中标签不改变选择。正常 UI 关闭最后一个标签仍由窗口层处理，本次拆分没有改变该流程。
 

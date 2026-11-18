@@ -5,6 +5,8 @@ import WebKit
 final class BrowserTab: ObservableObject, Identifiable {
     let id = UUID()
     let webView: WKWebView
+    /// The tab that opened this one, if it came from a popup navigation.
+    var openerTabID: ID?
 
     @Published var title: String = "新标签页"
     @Published var urlText: String = ""
@@ -47,7 +49,8 @@ final class BrowserTab: ObservableObject, Identifiable {
 
     /// 根据当前页面域名应用已保存的站点缩放（www 前缀会忽略）
     func applySiteZoom() {
-        webView.pageZoom = ZoomStore.shared.zoom(for: webView.url?.host)
+        let zoom = ZoomStore.shared.zoom(for: webView.url?.host)
+        if webView.pageZoom != zoom { webView.pageZoom = zoom }
     }
 
     // MARK: - 浏览操作

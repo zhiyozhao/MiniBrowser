@@ -46,7 +46,9 @@ final class LocalHTTPServer: @unchecked Sendable {
 
     init(handler: @escaping @Sendable (Request) -> Response) throws {
         self.handler = handler
-        listener = try NWListener(using: .tcp, on: .any)
+        let parameters = NWParameters.tcp
+        parameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: .any)
+        listener = try NWListener(using: parameters)
     }
 
     var baseURL: URL {

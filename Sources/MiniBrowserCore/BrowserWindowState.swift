@@ -15,6 +15,20 @@ public struct BrowserWindowState {
         selectedID = id
     }
 
+    /// Inserts a tab immediately after another tab. This is used for popup
+    /// navigations so the new tab stays next to the tab that opened it.
+    public mutating func insertTab(id: UUID, after openerID: UUID, select: Bool = true) {
+        guard !tabIDs.contains(id) else { return }
+        if let index = tabIDs.firstIndex(of: openerID) {
+            tabIDs.insert(id, at: index + 1)
+        } else {
+            tabIDs.append(id)
+        }
+        if select {
+            selectedID = id
+        }
+    }
+
     public mutating func closeTab(id: UUID) {
         guard let index = tabIDs.firstIndex(of: id) else { return }
         tabIDs.remove(at: index)
