@@ -81,12 +81,18 @@ struct WebViewStackRepresentable: NSViewRepresentable {
             viewsByID = Dictionary(uniqueKeysWithValues: tabs.map { ($0.id, $0.webView) })
             recentIDs.removeAll { !ids.contains($0) }
             updateMounts(preferredID: model.selectedID)
-            show(model.selectedID)
+            show(model.selectedID, focusWebView: shouldFocusWebView(model.selectedID, model: model))
         }
 
-        func select(_ id: BrowserTab.ID?) {
+        func select(_ id: BrowserTab.ID?, focusWebView: Bool = true) {
             updateMounts(preferredID: id)
-            show(id)
+            show(id, focusWebView: focusWebView)
+        }
+
+        private func shouldFocusWebView(_ id: BrowserTab.ID?, model: BrowserWindowModel) -> Bool {
+            guard let id,
+                  let tab = model.tabs.first(where: { tab in tab.id == id }) else { return false }
+            return !tab.urlText.isEmpty || tab.openerTabID != nil
         }
 
         private func updateMounts(preferredID: BrowserTab.ID?) {
@@ -118,7 +124,7 @@ struct WebViewStackRepresentable: NSViewRepresentable {
             mountedTabIDs = desiredIDs
         }
 
-        private func show(_ id: BrowserTab.ID?) {
+        private func show(_ id: BrowserTab.ID?, focusWebView: Bool) {
             guard selectedID != id || id.flatMap({ viewsByID[$0] })?.isHidden == true else { return }
             for (tabID, view) in viewsByID where mountedTabIDs.contains(tabID) {
                 view.isHidden = tabID != id
@@ -126,15 +132,41 @@ struct WebViewStackRepresentable: NSViewRepresentable {
             selectedID = id
             if let id, let view = viewsByID[id], mountedTabIDs.contains(id) {
                 view.isHidden = false
-                window?.makeFirstResponder(view)
-                DispatchQueue.main.async { [weak self, weak view] in
-                    guard let self, let view, self.selectedID == id,
-                          view.superview === self, !view.isHidden else { return }
-                    self.window?.makeFirstResponder(view)
+                if focusWebView {
+                    window?.makeFirstResponder(view)
+                    DispatchQueue.main.async { [weak self, weak view] in
+                        guard let self, let view, self.selectedID == id,
+                              view.superview === self, !view.isHidden else { return }
+                        self.window?.makeFirstResponder(view)
+                    }
+                } else {
+                    focusAddressField()
                 }
-            } else {
-                window?.makeFirstResponder(nil)
             }
+        }
+
+        private func focusAddressField() {
+            guard let window else { return }
+            func editableField(in view: NSView) -> NSTextField? {
+                if let field = view as? NSTextField, field.isEditable, !field.isHidden {
+                    return field
+                }
+                for child in view.subviews {
+                    if let field = editableField(in: child) { return field }
+                }
+                return nil
+            }
+            let focus = { [weak window] in
+                guard let window,
+                      let contentView = window.contentView,
+                      let field = editableField(in: contentView) else { return }
+                window.makeKeyAndOrderFront(nil)
+                window.makeFirstResponder(field)
+            }
+            focus()
+            // SwiftUI may construct the replacement toolbar after this view
+            // update; retry once after it has committed the new tab identity.
+            DispatchQueue.main.async(execute: focus)
         }
 
         override func layout() {

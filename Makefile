@@ -23,7 +23,7 @@ test:
 
 ## run: 打包 DEV X 签名的 release app，做 5 秒启动冒烟后只关闭该进程
 run:
-	Scripts/build-app.sh
+	MINIBROWSER_BUNDLE_ID=com.zhao.minibrowser.dev Scripts/build-app.sh
 	@set -eu; \
 	suite="MiniBrowser.Local.$$"; data="$(CURDIR)/.local/run-data"; pid=""; \
 	cleanup() { \
@@ -34,6 +34,7 @@ run:
 	}; \
 	trap cleanup EXIT INT TERM; \
 	MINIBROWSER_DEFAULTS_SUITE="$$suite" MINIBROWSER_DATA_DIRECTORY="$$data" \
+	MINIBROWSER_NONPERSISTENT=1 \
 		"$(APP)/Contents/MacOS/MiniBrowser" & pid=$$!; \
 	sleep 5; \
 	kill -0 $$pid; \

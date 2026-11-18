@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 
 APP="MiniBrowser.app"
 VERSION=$(Scripts/version.sh)
+BUNDLE_ID="${MINIBROWSER_BUNDLE_ID:-com.zhao.minibrowser}"
 
 swift build -c release
 
@@ -13,6 +14,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/MiniBrowser "$APP/Contents/MacOS/"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 
 # 稳定的 DEV X 签名让覆盖安装保留已有权限；禁止回退为 ad-hoc。

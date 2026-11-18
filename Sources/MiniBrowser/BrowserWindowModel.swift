@@ -24,7 +24,8 @@ final class BrowserWindowModel: ObservableObject {
             guard newValue != state.selectedID else { return }
             if let newValue, tabsByID[newValue] == nil { return }
             // Present synchronously in the tab action; SwiftUI updates only chrome.
-            webViewHost?.select(newValue)
+            let tab = newValue.flatMap { tabsByID[$0] }
+            webViewHost?.select(newValue, focusWebView: tab.map { !$0.urlText.isEmpty || $0.openerTabID != nil } ?? false)
             state.selectedID = newValue
         }
     }
@@ -43,6 +44,7 @@ final class BrowserWindowModel: ObservableObject {
         tabsByID[tab.id] = tab
         attachDelegate(to: tab)
         state.newTab(id: tab.id)
+        webViewHost?.sync(model: self)
         return tab
     }
 

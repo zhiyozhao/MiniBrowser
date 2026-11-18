@@ -1,27 +1,29 @@
 import WebKit
 
 /// WebKit enforces whether a popup has user activation. This adds a single-use
-/// permit for each trusted click, in a content world the page cannot access.
+/// permit for each trusted activation, in a content world the page cannot access.
 @MainActor
 final class PopupGestureGate: NSObject, WKScriptMessageHandler {
     static let shared = PopupGestureGate()
     static let messageName = "minibrowserPopupGesture"
     private let permits = NSMapTable<WKWebView, NSNumber>.weakToStrongObjects()
     private static let script = """
-    let lastInput = -Infinity;
     function grantPopup(event) {
         if (!event.isTrusted) return;
-        lastInput = event.timeStamp;
         webkit.messageHandlers.minibrowserPopupGesture.postMessage('input');
     }
-    addEventListener('pointerdown', grantPopup, true);
+    // mouseup represents the completed activation. Keeping this independent of
+    // a wall-clock timer allows slow clicks and context-menu actions to finish.
+    addEventListener('mouseup', grantPopup, true);
     addEventListener('keydown', event => {
         if (!event.repeat) grantPopup(event);
     }, true);
+    // The native context menu's “open in new tab” action occurs after this
+    // event, so it receives the same single activation permit.
+    addEventListener('contextmenu', grantPopup, true);
     // Accessibility activation can dispatch a click without pointer/key input.
-    // Do not issue a second permit for the click following a physical input.
     addEventListener('click', event => {
-        if (event.detail === 0 && event.timeStamp - lastInput > 1000) grantPopup(event);
+        if (event.detail === 0) grantPopup(event);
     }, true);
     """
 
@@ -36,12 +38,14 @@ final class PopupGestureGate: NSObject, WKScriptMessageHandler {
     func userContentController(_ userContentController: WKUserContentController,
                                didReceive message: WKScriptMessage) {
         guard let webView = message.webView else { return }
-        permits.setObject(NSNumber(value: ProcessInfo.processInfo.systemUptime), forKey: webView)
+        // A permit is deliberately not time limited. WebKit still applies its
+        // own transient-user-activation rules; this map only ensures that our
+        // delegate can create at most one tab for one activation.
+        permits.setObject(NSNumber(value: true), forKey: webView)
     }
 
     func consume(for webView: WKWebView) -> Bool {
-        guard let timestamp = permits.object(forKey: webView)?.doubleValue,
-              ProcessInfo.processInfo.systemUptime - timestamp < 0.25 else {
+        guard permits.object(forKey: webView) != nil else {
             permits.removeObject(forKey: webView)
             return false
         }

@@ -219,6 +219,59 @@ struct PopupTests {
         fixture.assertOneWindow()
     }
 
+    @Test("慢点击和点击后 400ms 的弹窗仍能打开")
+    func delayedActivationStillOpensPopup() async throws {
+        let fixture = try await PopupFixture.make()
+        defer { fixture.close() }
+        _ = try await fixture.main.webView.callAsyncJavaScript(
+            "webkit.messageHandlers.minibrowserPopupGesture.postMessage('mouse-up');",
+            arguments: [:], in: nil, contentWorld: .defaultClient)
+        try await Task.sleep(for: .milliseconds(400))
+        _ = try await fixture.main.webView.evaluateJavaScript("window.open('/child', '_blank'); void(0)")
+        try await waitUntil("delayed popup ready") { fixture.model.tabs.contains { $0.openerTabID == fixture.main.id && $0.title == "child-ready" } }
+        fixture.assertOneWindow()
+    }
+
+    @Test("按住链接 400ms 后松开仍能打开弹窗")
+    func heldActivationOpensAfterMouseUp() async throws {
+        let fixture = try await PopupFixture.make()
+        defer { fixture.close() }
+        try await Task.sleep(for: .milliseconds(400))
+        _ = try await fixture.main.webView.callAsyncJavaScript(
+            "webkit.messageHandlers.minibrowserPopupGesture.postMessage('mouse-up');",
+            arguments: [:], in: nil, contentWorld: .defaultClient)
+        _ = try await fixture.main.webView.evaluateJavaScript("window.open('/child', '_blank'); void(0)")
+        try await waitUntil("held-click popup ready") { fixture.model.tabs.contains { $0.openerTabID == fixture.main.id && $0.title == "child-ready" } }
+        fixture.assertOneWindow()
+    }
+
+    @Test("右键菜单在新标签打开使用一次用户激活")
+    func contextMenuOpenInNewTabUsesActivationPermit() async throws {
+        let fixture = try await PopupFixture.make()
+        defer { fixture.close() }
+        _ = try await fixture.main.webView.callAsyncJavaScript(
+            "webkit.messageHandlers.minibrowserPopupGesture.postMessage('contextmenu');",
+            arguments: [:], in: nil, contentWorld: .defaultClient)
+        _ = try await fixture.main.webView.evaluateJavaScript("window.open('/child', '_blank'); void(0)")
+        try await waitUntil("context-menu popup ready") { fixture.model.tabs.contains { $0.openerTabID == fixture.main.id && $0.title == "child-ready" } }
+        fixture.assertOneWindow()
+    }
+
+    @Test("新建空标签把焦点留在地址栏")
+    func blankTabFocusesAddressField() async throws {
+        let fixture = try await PopupFixture.make()
+        defer { fixture.close() }
+        _ = fixture.model.newTab()
+        try await waitUntil("address field focus") {
+            let responderName = fixture.window.firstResponder.map { String(describing: type(of: $0)) } ?? ""
+            return responderName.contains("FieldEditor") || fixture.window.firstResponder is NSTextField
+        }
+        let responderName = fixture.window.firstResponder.map { String(describing: type(of: $0)) } ?? ""
+        #expect(responderName.contains("FieldEditor") || fixture.window.firstResponder is NSTextField)
+        #expect(fixture.window.firstResponder !== fixture.model.selectedTab?.webView)
+        fixture.assertOneWindow()
+    }
+
     @Test("关闭非当前弹窗不改变选中标签")
     func closingBackgroundPopupKeepsSelection() async throws {
         let fixture = try await PopupFixture.make()
@@ -234,6 +287,8 @@ struct PopupTests {
     func switchingAndPopupCloseRestoreWebViewFocus() async throws {
         let fixture = try await PopupFixture.make()
         defer { fixture.close() }
+        fixture.other.webView.load(URLRequest(url: fixture.server.baseURL.appendingPathComponent("child")))
+        try await waitUntil("other tab loaded") { fixture.other.title == "child-ready" && !fixture.other.isLoading }
         fixture.model.selectedID = fixture.other.id
         #expect(fixture.window.firstResponder === fixture.other.webView)
         let popup = try await fixture.open("window.open('/child', '_blank')")

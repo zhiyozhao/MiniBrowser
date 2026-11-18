@@ -15,17 +15,23 @@ struct TabSwitchPerformanceTests {
     func switchingLoadedTabs() async throws {
         let server = try LocalHTTPServer { _ in .init("""
         <html><head><title>Heavy local fixture</title></head><body>
-        <canvas width="1200" height="800"></canvas><video controls></video><script>
+        <canvas width="1200" height="800"></canvas><video controls></video><div id="timer"></div><script>
         const c = document.querySelector('canvas').getContext('2d');
         for (let i=0;i<3000;i++) {
             c.fillStyle = `hsl(${i%360},60%,50%)`; c.fillRect(i%1200,i%800,35,35);
             const p=document.createElement('p'); p.textContent='Document row '+i; document.body.append(p);
         }
+        let tick = 0;
+        setInterval(() => {
+            tick++;
+            document.getElementById('timer').textContent = 'timer tick ' + tick;
+        }, 50);
         </script></body></html>
         """) }
         try await server.start()
         defer { server.stop() }
         let environment = ProcessInfo.processInfo.environment
+        let baselineWebContentPIDs = webContentProcesses().map(\.pid)
         let realPages = environment["MINIBROWSER_REAL_PAGES"] == "1"
         let realPageURLs = [
             "https://www.theguardian.com/world", "https://www.theguardian.com/international",
@@ -153,8 +159,11 @@ struct TabSwitchPerformanceTests {
             let sorted = values.sorted()
             return ["p50": sorted[sorted.count/2], "p95": sorted[Int(ceil(Double(sorted.count)*0.95))-1], "max": sorted.last!]
         }
+        let currentWebContent = webContentProcesses().filter { !baselineWebContentPIDs.contains($0.pid) }
         let report: [String: Any] = ["realPages": realPages, "pagesMeasured": urls.map(\.absoluteString),
             "pageFailures": pageFailures, "samples": mainThread.count,
+            "webContentRSSKB": currentWebContent.reduce(0) { $0 + $1.rssKB },
+            "webContentProcessCount": currentWebContent.count,
             "mainThreadMs": stats(mainThread), "synchronousActionMs": stats(synchronous),
             "viewVisibleMs": stats(visible), "snapshotReadyMs": stats(snapshot), "pages": pageResults]
         let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
@@ -178,5 +187,23 @@ struct TabSwitchPerformanceTests {
         }
         #expect(stats(mainThread)["p95"]! < 16)
         #expect(pageFailures.isEmpty, "real page load failures: \(pageFailures.joined(separator: ", "))")
+    }
+
+    private func webContentProcesses() -> [(pid: Int, rssKB: Int)] {
+        let process = Process()
+        let output = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/bin/ps")
+        process.arguments = ["-axo", "pid=,rss=,command="]
+        process.standardOutput = output
+        process.standardError = FileHandle.nullDevice
+        guard (try? process.run()) != nil else { return [] }
+        let text = String(decoding: output.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        process.waitUntilExit()
+        return text.split(separator: "\n").compactMap { line in
+            guard line.contains("com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent") else { return nil }
+            let fields = line.split(whereSeparator: { $0 == " " || $0 == "\t" })
+            guard fields.count >= 2, let pid = Int(fields[0]), let rssKB = Int(fields[1]) else { return nil }
+            return (pid, rssKB)
+        }
     }
 }
