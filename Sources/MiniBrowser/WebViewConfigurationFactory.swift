@@ -9,9 +9,10 @@ enum WebViewConfigurationFactory {
         configuration.applicationNameForUserAgent = safariApplicationName
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
         MainActor.assumeIsolated { PopupGestureGate.install(in: configuration) }
-        if configuration.websiteDataStore === WKWebsiteDataStore.default() {
-            AppEnvironment.configureWebsiteDataStore(configuration)
-        }
+        // An explicit data-directory override always means an isolated copy;
+        // apply its nonPersistent store even when a caller supplied a custom
+        // configuration with a different store.
+        AppEnvironment.configureWebsiteDataStore(configuration)
     }
 
     static func make() -> WKWebViewConfiguration {
