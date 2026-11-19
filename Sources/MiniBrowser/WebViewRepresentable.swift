@@ -67,14 +67,19 @@ struct WebViewRepresentable: NSViewRepresentable {
             observations = [
                 webView.observe(\.title) { [weak self] wv, _ in
                     DispatchQueue.main.async {
-                        self?.tab.title = (wv.title?.isEmpty == false) ? wv.title! : "新标签页"
+                        self?.tab.setDocumentTitle(wv.title)
                     }
                 },
                 webView.observe(\.url) { [weak self] wv, _ in
                     DispatchQueue.main.async {
                         // 内置新标签页（about:blank）不显示在地址栏
                         let urlString = wv.url?.absoluteString ?? ""
-                        self?.tab.urlText = urlString == "about:blank" ? "" : urlString
+                        if urlString == "about:blank" {
+                            if self?.tab.openerTabID == nil { self?.tab.urlText = "" }
+                        } else {
+                            self?.tab.urlText = urlString
+                            if self?.tab.isLoading == true { self?.tab.beginLoading(wv.url) }
+                        }
                         // 根据新域名应用站点级缩放
                         self?.tab.applySiteZoom()
                     }
@@ -86,7 +91,10 @@ struct WebViewRepresentable: NSViewRepresentable {
                     DispatchQueue.main.async { self?.tab.canGoForward = wv.canGoForward }
                 },
                 webView.observe(\.isLoading) { [weak self] wv, _ in
-                    DispatchQueue.main.async { self?.tab.isLoading = wv.isLoading }
+                    DispatchQueue.main.async {
+                        if wv.isLoading { self?.tab.beginLoading(wv.url) }
+                        else { self?.tab.finishLoading() }
+                    }
                 },
             ]
         }
@@ -155,6 +163,7 @@ struct WebViewRepresentable: NSViewRepresentable {
                     clearPendingCertificate()
                 }
                 lastMainFrameURL = url
+                tab.beginLoading(url)
             }
             decisionHandler(.allow)
         }
@@ -248,6 +257,7 @@ struct WebViewRepresentable: NSViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             isLoadingCertificateErrorPage = false
             lastCommittedURL = webView.url
+            tab.finishLoading()
             tab.applySiteZoom()
         }
 
@@ -262,6 +272,7 @@ struct WebViewRepresentable: NSViewRepresentable {
         func webView(_ webView: WKWebView,
                      didFailProvisionalNavigation navigation: WKNavigation!,
                      withError error: Error) {
+            tab.failLoading()
             NSLog("MiniBrowser 加载失败: %@, 错误: %@",
                   webView.url?.absoluteString ?? "(未知地址)", error.localizedDescription)
         }
@@ -269,6 +280,7 @@ struct WebViewRepresentable: NSViewRepresentable {
         func webView(_ webView: WKWebView,
                      didFail navigation: WKNavigation!,
                      withError error: Error) {
+            tab.failLoading()
             NSLog("MiniBrowser 加载中断: %@, 错误: %@",
                   webView.url?.absoluteString ?? "(未知地址)", error.localizedDescription)
         }

@@ -331,22 +331,40 @@ private struct TopBarView: View {
 
     private var tabBar: some View {
         ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(model.tabs) { t in
-                        TabChip(tab: t,
-                                isSelected: t.id == model.selectedID,
-                                onSelect: { model.selectedID = t.id },
-                                onClose: { closeTab(t.id) })
-                            .id(t.id)
+            GeometryReader { geometry in
+                let width = TabBarLayout.itemWidth(containerWidth: geometry.size.width,
+                                                    tabCount: model.tabs.count)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: TabBarLayout.spacing) {
+                        ForEach(model.tabs) { t in
+                            TabChip(tab: t,
+                                    isSelected: t.id == model.selectedID,
+                                    width: width,
+                                    onSelect: { model.selectedID = t.id },
+                                    onClose: { closeTab(t.id) })
+                                .id(t.id)
+                        }
                     }
+                    .padding(.horizontal, TabBarLayout.horizontalPadding)
                 }
-                .padding(.horizontal, 10)
             }
             .onChange(of: model.selectedID) { id in
-                if let id { proxy.scrollTo(id) }
+                if let id {
+                    DispatchQueue.main.async { proxy.scrollTo(id, anchor: .center) }
+                }
+            }
+            .onChange(of: model.tabs.count) { _ in
+                if let id = model.selectedID {
+                    DispatchQueue.main.async { proxy.scrollTo(id, anchor: .center) }
+                }
+            }
+            .onAppear {
+                if let id = model.selectedID {
+                    DispatchQueue.main.async { proxy.scrollTo(id, anchor: .center) }
+                }
             }
         }
+        .frame(maxWidth: .infinity)
         .frame(height: 34)
     }
 
@@ -363,12 +381,26 @@ private struct TopBarView: View {
 private struct TabChip: View {
     @ObservedObject var tab: BrowserTab
     let isSelected: Bool
+    let width: CGFloat
     let onSelect: () -> Void
     let onClose: () -> Void
     @State private var hovering = false
 
     var body: some View {
         HStack(spacing: 6) {
+            Group {
+                if tab.isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                } else if tab.loadFailed {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                } else {
+                    Image(systemName: "globe")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: 14, height: 14)
             Text(tab.title)
                 .font(.system(size: 12))
                 .lineLimit(1)
@@ -382,7 +414,7 @@ private struct TabChip: View {
             }
         }
         .padding(.horizontal, 10)
-        .frame(width: 180, height: 26)
+        .frame(width: width, height: 26)
         .background(
             isSelected
                 ? Color(nsColor: .textBackgroundColor)
@@ -393,6 +425,29 @@ private struct TabChip: View {
         .contentShape(Rectangle())
         .onTapGesture(perform: onSelect)
         .onHover { hovering = $0 }
+    }
+}
+
+/// Shared geometry rules for the tab strip.  Keeping this calculation pure
+/// makes the narrow-window guarantees easy to exercise without a running app.
+enum TabBarLayout {
+    static let idealWidth: CGFloat = 180
+    static let minimumWidth: CGFloat = 96
+    static let spacing: CGFloat = 6
+    static let horizontalPadding: CGFloat = 10
+
+    static func itemWidth(containerWidth: CGFloat, tabCount: Int) -> CGFloat {
+        guard tabCount > 0 else { return idealWidth }
+        let inner = max(0, containerWidth - horizontalPadding * 2)
+        let availablePerItem = max(0, (inner - spacing * CGFloat(max(0, tabCount - 1))) / CGFloat(tabCount))
+        if availablePerItem >= idealWidth { return idealWidth }
+        if availablePerItem >= minimumWidth { return availablePerItem }
+        return minimumWidth
+    }
+
+    static func contentWidth(containerWidth: CGFloat, tabCount: Int) -> CGFloat {
+        let width = itemWidth(containerWidth: containerWidth, tabCount: tabCount)
+        return horizontalPadding * 2 + width * CGFloat(tabCount) + spacing * CGFloat(max(0, tabCount - 1))
     }
 }
 

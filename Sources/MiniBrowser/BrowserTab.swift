@@ -13,6 +13,12 @@ final class BrowserTab: ObservableObject, Identifiable {
     @Published var canGoBack = false
     @Published var canGoForward = false
     @Published var isLoading = false
+    @Published var loadFailed = false
+
+    /// The URL used for the provisional navigation.  It lets the tab show a
+    /// useful name before WebKit has received a document title.
+    private(set) var loadingHost: String?
+    private(set) var hasDocumentTitle = false
 
     private static let minZoom: CGFloat = 0.5
     private static let maxZoom: CGFloat = 2.0
@@ -25,14 +31,55 @@ final class BrowserTab: ObservableObject, Identifiable {
         webView = WKWebView(frame: .zero, configuration: configuration)
         webView.allowsMagnification = true // 触控板双指缩放
         // 弹窗的首个导航由 WebKit 自己接续，不能重新发请求或先加载新标签页。
-        guard loadsInitialContent else { return }
+        guard loadsInitialContent else {
+            title = "正在打开…"
+            return
+        }
         if let url {
             urlText = url.absoluteString
+            loadingHost = url.host
+            title = url.host ?? "正在打开…"
             webView.load(URLRequest(url: url))
         } else {
             // 新标签页：加载内置渐变页，避免空白页纯色难看/点击闪白
             webView.loadHTMLString(Self.newTabHTML, baseURL: nil)
         }
+    }
+
+    func beginLoading(_ url: URL?) {
+        isLoading = true
+        loadFailed = false
+        hasDocumentTitle = false
+        loadingHost = url?.host
+        if let url {
+            urlText = url.absoluteString
+        }
+        title = loadingHost.flatMap { $0.isEmpty ? nil : $0 } ?? "正在打开…"
+    }
+
+    func setDocumentTitle(_ value: String?) {
+        if let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            hasDocumentTitle = true
+            loadFailed = false
+            title = value
+        } else if !loadFailed {
+            hasDocumentTitle = false
+            title = isLoading ? (loadingHost ?? "正在打开…") : "新标签页"
+        }
+    }
+
+    func finishLoading() {
+        isLoading = false
+        if !hasDocumentTitle && !loadFailed {
+            title = "新标签页"
+        }
+    }
+
+    func failLoading() {
+        isLoading = false
+        loadFailed = true
+        hasDocumentTitle = false
+        title = "加载失败"
     }
 
     /// 内置新标签页：跟随系统深/浅色的柔和渐变

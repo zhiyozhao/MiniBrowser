@@ -22,7 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @discardableResult
     private func openNewWindow(initialTab: BrowserTab? = nil,
                                contentSize: NSSize = NSSize(width: 1100, height: 700)) -> BrowserWindowController {
-        let window = NSWindow(
+        let window = BrowserWindow(
             contentRect: NSRect(origin: .zero, size: contentSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
@@ -41,6 +41,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.toolbarStyle = .unifiedCompact
         window.center()
         let model = BrowserWindowModel(initialTab: initialTab)
+        window.zoomShortcutHandler = { [weak model] action in
+            guard let model, let tab = model.selectedTab else { return }
+            switch action {
+            case .zoomIn: tab.zoomIn()
+            case .zoomOut: tab.zoomOut()
+            case .resetZoom: tab.resetZoom()
+            }
+        }
         let hostingController = NSHostingController(rootView: BrowserView(model: model))
         hostingController.sizingOptions = [] // 不要用 SwiftUI 内容尺寸反推窗口大小
         window.contentViewController = hostingController
@@ -94,6 +102,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainMenu.addItem(editItem)
 
         NSApp.mainMenu = mainMenu
+    }
+}
+
+enum BrowserZoomShortcut: Equatable {
+    case zoomIn
+    case zoomOut
+    case resetZoom
+
+    /// Zoom is handled at the window's key-equivalent stage, before a
+    /// WKWebView can consume the event with preventDefault(). Other command
+    /// combinations deliberately return nil and remain page shortcuts.
+    static func action(for event: NSEvent) -> BrowserZoomShortcut? {
+        let flags = event.modifierFlags.intersection([.command, .control, .option, .shift])
+        guard flags.contains(.command), !flags.contains(.control), !flags.contains(.option) else { return nil }
+        switch event.keyCode {
+        case 24: return .zoomIn // =, including Cmd+Shift+= (Cmd+plus)
+        case 27: return flags.contains(.shift) ? nil : .zoomOut
+        case 29: return flags.contains(.shift) ? nil : .resetZoom
+        default: return nil
+        }
+    }
+}
+
+final class BrowserWindow: NSWindow {
+    var zoomShortcutHandler: ((BrowserZoomShortcut) -> Void)?
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if let action = BrowserZoomShortcut.action(for: event) {
+            zoomShortcutHandler?(action)
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
     }
 }
 
