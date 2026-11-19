@@ -260,6 +260,7 @@ struct WebViewRepresentable: NSViewRepresentable {
         func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
             hasCommittedNavigation = true
             currentNavigationCommitted = true
+            tab.navigationCommitted(webView.url ?? provisionalURL)
             if tab.openerTabID != nil, tab.hasRealURL, isTabSelected() {
                 webView.window?.makeFirstResponder(webView)
             }

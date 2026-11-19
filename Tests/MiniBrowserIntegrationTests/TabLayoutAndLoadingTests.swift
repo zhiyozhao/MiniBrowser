@@ -181,7 +181,7 @@ struct TabLayoutAndLoadingTests {
     @Test("停止真实慢加载保留标题或 host，不显示加载失败")
     func stoppingSlowLoadDoesNotFail() async throws {
         let server = try LocalHTTPServer { request in
-            var response = LocalHTTPServer.Response("<title>\(request.path == "/slow" ? "slow" : "ready")</title>")
+            var response = LocalHTTPServer.Response("<title>\(request.path == "/slow" ? "slow" : "OK页")</title>")
             if request.path == "/slow" { response.delay = 3 }
             return response
         }
@@ -191,17 +191,16 @@ struct TabLayoutAndLoadingTests {
         let model = BrowserWindowModel(initialTab: tab)
         let window = try makeWindow(model: model, width: 420)
         defer { closeWindow(window, model: model) }
-        try await waitUntil("page ready") { tab.title == "ready" && !tab.isLoading }
+        try await waitUntil("page ready") { tab.title == "OK页" && !tab.isLoading }
         tab.webView.load(URLRequest(url: server.baseURL.appendingPathComponent("slow")))
         try await waitUntil("slow request reached server") { tab.isLoading && server.requests.contains { $0.path == "/slow" } }
-        let titleBeforeStop = tab.title
         tab.stop()
         try await waitUntil("load stopped") { !tab.webView.isLoading && !tab.isLoading }
         #expect(!tab.loadFailed)
-        #expect(tab.title == titleBeforeStop)
+        #expect(tab.title == "OK页")
         #expect(tab.title != "加载失败")
-        tab.webView.load(URLRequest(url: server.baseURL))
-        try await waitUntil("successful navigation after stop") { tab.title == "ready" && !tab.isLoading }
+        _ = try await tab.webView.evaluateJavaScript("document.title = 'After'")
+        try await waitUntil("old page title after stop") { tab.title == "After" }
     }
 
     @Test("真实请求超时显示加载失败")

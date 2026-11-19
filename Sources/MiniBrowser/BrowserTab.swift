@@ -19,6 +19,10 @@ final class BrowserTab: ObservableObject, Identifiable {
     /// The URL used for the provisional navigation.  It lets the tab show a
     /// useful name before WebKit has received a document title.
     private(set) var loadingHost: String?
+    /// The host of the last document WebKit committed. During a provisional
+    /// navigation, `webView.url` and the loading host may refer to different
+    /// documents; stopping must fall back to the committed one.
+    private(set) var committedHost: String?
     private var documentTitle: String?
     private var isNewTabPage: Bool
     private var stoppedTitle: String?
@@ -91,10 +95,17 @@ final class BrowserTab: ObservableObject, Identifiable {
     func setDocumentTitle(_ value: String?) {
         if let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             documentTitle = value
+            // A real title from the document supersedes any title captured
+            // while a provisional navigation was stopped.
+            stoppedTitle = nil
         } else {
             documentTitle = nil
         }
         updateTitle()
+    }
+
+    func navigationCommitted(_ url: URL?) {
+        committedHost = url?.host
     }
 
     func finishLoading() {
@@ -147,7 +158,8 @@ final class BrowserTab: ObservableObject, Identifiable {
     func reload() { webView.reload() }
     func stop() {
         guard webView.isLoading else { return }
-        stoppedTitle = title
+        let webTitle = webView.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        stoppedTitle = webTitle.isEmpty ? committedHost : webTitle
         webView.stopLoading()
     }
 
