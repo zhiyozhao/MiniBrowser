@@ -13,12 +13,15 @@ final class BrowserTab: ObservableObject, Identifiable {
     @Published var canGoBack = false
     @Published var canGoForward = false
     @Published var isLoading = false
+    @Published var estimatedProgress = 0.0
     @Published var loadFailed = false
 
     /// The URL used for the provisional navigation.  It lets the tab show a
     /// useful name before WebKit has received a document title.
     private(set) var loadingHost: String?
-    private(set) var hasDocumentTitle = false
+    private var documentTitle: String?
+    private var isNewTabPage: Bool
+    private var stoppedTitle: String?
 
     private static let minZoom: CGFloat = 0.5
     private static let maxZoom: CGFloat = 2.0
@@ -27,6 +30,7 @@ final class BrowserTab: ObservableObject, Identifiable {
     init(url: URL? = nil,
          configuration: WKWebViewConfiguration = WebViewConfigurationFactory.make(),
          loadsInitialContent: Bool = true) {
+        isNewTabPage = loadsInitialContent && url == nil
         WebViewConfigurationFactory.configure(configuration)
         webView = WKWebView(frame: .zero, configuration: configuration)
         webView.allowsMagnification = true // 触控板双指缩放
@@ -36,7 +40,7 @@ final class BrowserTab: ObservableObject, Identifiable {
             return
         }
         if let url {
-            urlText = url.absoluteString
+            urlText = Self.addressText(for: url)
             loadingHost = url.host
             title = url.host ?? "正在打开…"
             webView.load(URLRequest(url: url))
@@ -46,40 +50,76 @@ final class BrowserTab: ObservableObject, Identifiable {
         }
     }
 
-    func beginLoading(_ url: URL?) {
-        isLoading = true
+    var hasRealURL: Bool {
+        !Self.addressText(for: webView.url).isEmpty
+    }
+
+    private static func addressText(for url: URL?) -> String {
+        guard let url else { return "" }
+        let address = url.absoluteString.removingPercentEncoding ?? url.absoluteString
+        let base = address.lowercased().split(whereSeparator: { $0 == "#" || $0 == "?" }).first
+        if base == "about:blank" { return "" }
+        return url.absoluteString
+    }
+
+    /// Called only when WebKit starts a new document, never from policy
+    /// decisions (which also include anchors and history API changes).
+    func navigationStarted(_ url: URL?) {
         loadFailed = false
-        hasDocumentTitle = false
-        loadingHost = url?.host
-        if let url {
-            urlText = url.absoluteString
-        }
-        title = loadingHost.flatMap { $0.isEmpty ? nil : $0 } ?? "正在打开…"
+        stoppedTitle = nil
+        documentTitle = nil
+        updateURL(url)
+        updateTitle()
+    }
+
+    func updateURL(_ url: URL?) {
+        guard let url else { return } // provisional failures can leave WebKit.url nil
+        urlText = Self.addressText(for: url)
+        loadingHost = url.host
+        if !urlText.isEmpty { isNewTabPage = false }
+        updateTitle()
+    }
+
+    /// Both fields come directly from WebKit KVO. Progress does not reset
+    /// titles or failure state, including notifications queued after failure.
+    func synchronizeLoading() {
+        isLoading = webView.isLoading
+        estimatedProgress = webView.estimatedProgress
+        updateTitle()
     }
 
     func setDocumentTitle(_ value: String?) {
         if let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            hasDocumentTitle = true
-            loadFailed = false
-            title = value
-        } else if !loadFailed {
-            hasDocumentTitle = false
-            title = isLoading ? (loadingHost ?? "正在打开…") : "新标签页"
+            documentTitle = value
+        } else {
+            documentTitle = nil
         }
+        updateTitle()
     }
 
     func finishLoading() {
-        isLoading = false
-        if !hasDocumentTitle && !loadFailed {
-            title = "新标签页"
-        }
+        synchronizeLoading()
     }
 
-    func failLoading() {
-        isLoading = false
+    func failLoading(error: Error) {
+        let error = error as NSError
+        if error.domain == NSURLErrorDomain, error.code == NSURLErrorCancelled {
+            synchronizeLoading()
+            return
+        }
         loadFailed = true
-        hasDocumentTitle = false
-        title = "加载失败"
+        if let url = error.userInfo[NSURLErrorFailingURLErrorKey] as? URL {
+            updateURL(url)
+        }
+        synchronizeLoading()
+    }
+
+    private func updateTitle() {
+        if loadFailed { title = "加载失败" }
+        else if let stoppedTitle { title = stoppedTitle }
+        else if let documentTitle { title = documentTitle }
+        else if let loadingHost { title = loadingHost }
+        else { title = isNewTabPage ? "新标签页" : "正在打开…" }
     }
 
     /// 内置新标签页：跟随系统深/浅色的柔和渐变
@@ -105,7 +145,11 @@ final class BrowserTab: ObservableObject, Identifiable {
     func goBack() { webView.goBack() }
     func goForward() { webView.goForward() }
     func reload() { webView.reload() }
-    func stop() { webView.stopLoading() }
+    func stop() {
+        guard webView.isLoading else { return }
+        stoppedTitle = title
+        webView.stopLoading()
+    }
 
     func zoomIn() { setZoom(webView.pageZoom + Self.zoomStep) }
     func zoomOut() { setZoom(webView.pageZoom - Self.zoomStep) }

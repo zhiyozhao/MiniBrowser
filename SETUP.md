@@ -6,7 +6,7 @@
 - Xcode 16+（需包含 Swift Testing）；本机使用 Xcode 26.3 / Swift 6.2.4。
 - 仅使用 SwiftPM 本地 target，无第三方包依赖，无需额外生成 Xcode 工程。
 - 钥匙串必须有自签名代码签名证书 `DEV X`。项目不保存证书或密码，不读取证书文件，也不回退 ad-hoc 签名。
-- 不需要 brew、npm、Python、端口、模拟器或后台开发服务。
+- 不需要 brew、npm、模拟器或常驻后台服务。HTTPS 集成测试使用系统 OpenSSL 生成证书，并用 Xcode/Command Line Tools 提供的 `/usr/bin/python3` 标准库启动和监督 HTTPS 子进程，无需安装 Python 包；HTTP/HTTPS fixture 仅监听本机临时端口。
 
 ## 常用命令
 
@@ -34,7 +34,9 @@ MiniBrowser.app/Contents/MacOS/MiniBrowser \
   -dataDirectory "$PWD/.local/manual"
 ```
 
-环境变量优先于启动参数。`cfprefsd` 不随 HOME 隔离，所以偏好必须使用独立 suite；WebKit 数据目录则在首次创建 WebView 前通过 HOME / CFFIXED_USER_HOME 隔离。`Scripts/test.sh` 还会逐字节比较检查前后的真实应用 plist，并检查测试 suite 文件已删除。
+环境变量优先于启动参数。偏好使用独立 suite；传入 data directory 时使用 nonPersistent WebKit store，所有支持的 macOS 版本都不改写 HOME / CFFIXED_USER_HOME。`Scripts/test.sh` 还会逐字节比较检查前后的真实应用 plist，并检查测试 suite 文件已删除。
+
+HTTPS fixture 由 `Scripts/test-tls-server.py` 启动仅监听 127.0.0.1 的独立进程组，正常 teardown / deinit 会结束它；父测试进程退出或收到中断后，监督进程会回收 HTTPS 服务，最长生命周期 120 秒。`make check` 先验证正常停止、超时和父进程中断三种清理路径，结束后要求 `pgrep -f '[M]iniBrowserTests-https'` 为空。
 
 产物位于仓库根目录：`MiniBrowser.app`、`MiniBrowser-<版本>.dmg`，临时 DMG 目录为 `dmg/`。这些文件均被 git 忽略。
 

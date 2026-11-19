@@ -14,6 +14,7 @@ final class LocalHTTPServer: @unchecked Sendable {
         var status: String
         var headers: [String: String]
         var body: Data
+        var delay: TimeInterval = 0
 
         init(_ body: String = "", status: String = "200 OK",
              contentType: String = "text/html; charset=utf-8",
@@ -129,9 +130,12 @@ final class LocalHTTPServer: @unchecked Sendable {
         head += "\r\n"
         var data = Data(head.utf8)
         data.append(response.body)
-        connection.send(content: data, completion: .contentProcessed { _ in
-            connection.cancel()
-        })
+        let payload = data
+        queue.asyncAfter(deadline: .now() + response.delay) {
+            connection.send(content: payload, completion: .contentProcessed { _ in
+                connection.cancel()
+            })
+        }
     }
 
     private static func parseRequest(_ data: Data) -> Request? {

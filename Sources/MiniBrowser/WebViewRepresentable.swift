@@ -36,6 +36,8 @@ struct WebViewRepresentable: NSViewRepresentable {
         private var lastMainFrameURL: URL?
         private var lastCommittedURL: URL?
         private var hasCommittedNavigation = false
+        private var provisionalURL: URL?
+        private var currentNavigationCommitted = false
         private var recoveryState = WebContentRecoveryState()
         private struct PendingCertificate {
             let token = UUID()
@@ -73,13 +75,7 @@ struct WebViewRepresentable: NSViewRepresentable {
                 webView.observe(\.url) { [weak self] wv, _ in
                     DispatchQueue.main.async {
                         // 内置新标签页（about:blank）不显示在地址栏
-                        let urlString = wv.url?.absoluteString ?? ""
-                        if urlString == "about:blank" {
-                            if self?.tab.openerTabID == nil { self?.tab.urlText = "" }
-                        } else {
-                            self?.tab.urlText = urlString
-                            if self?.tab.isLoading == true { self?.tab.beginLoading(wv.url) }
-                        }
+                        if self?.tab.loadFailed == false { self?.tab.updateURL(wv.url) }
                         // 根据新域名应用站点级缩放
                         self?.tab.applySiteZoom()
                     }
@@ -92,8 +88,12 @@ struct WebViewRepresentable: NSViewRepresentable {
                 },
                 webView.observe(\.isLoading) { [weak self] wv, _ in
                     DispatchQueue.main.async {
-                        if wv.isLoading { self?.tab.beginLoading(wv.url) }
-                        else { self?.tab.finishLoading() }
+                        self?.tab.synchronizeLoading()
+                    }
+                },
+                webView.observe(\.estimatedProgress) { [weak self] wv, _ in
+                    DispatchQueue.main.async {
+                        self?.tab.synchronizeLoading()
                     }
                 },
             ]
@@ -163,7 +163,7 @@ struct WebViewRepresentable: NSViewRepresentable {
                     clearPendingCertificate()
                 }
                 lastMainFrameURL = url
-                tab.beginLoading(url)
+                tab.updateURL(url)
             }
             decisionHandler(.allow)
         }
@@ -250,13 +250,41 @@ struct WebViewRepresentable: NSViewRepresentable {
         }
 
         /// 页面加载完成后再应用一次，确保缩放生效
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            provisionalURL = lastMainFrameURL ?? webView.url
+            currentNavigationCommitted = false
+            tab.navigationStarted(provisionalURL)
+            tab.synchronizeLoading()
+        }
+
         func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
             hasCommittedNavigation = true
+            currentNavigationCommitted = true
+            if tab.openerTabID != nil, tab.hasRealURL, isTabSelected() {
+                webView.window?.makeFirstResponder(webView)
+            }
+        }
+
+        func webView(_ webView: WKWebView, didReceiveServerRedirectForProvisionalNavigation navigation: WKNavigation!) {
+            provisionalURL = webView.url
+            tab.updateURL(webView.url)
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             isLoadingCertificateErrorPage = false
+            // WebKit may reject a network URL (for example an unsafe port)
+            // by committing an empty about:blank document with no failure
+            // callback. A real network response must not finish at blank.
+            if let provisionalURL,
+               ["http", "https"].contains(provisionalURL.scheme?.lowercased() ?? ""),
+               webView.url?.absoluteString == "about:blank" ||
+                (!currentNavigationCommitted && webView.url != provisionalURL) {
+                tab.failLoading(error: NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotConnectToHost,
+                                    userInfo: [NSURLErrorFailingURLErrorKey: provisionalURL]))
+                return
+            }
             lastCommittedURL = webView.url
+            tab.setDocumentTitle(webView.title)
             tab.finishLoading()
             tab.applySiteZoom()
         }
@@ -272,7 +300,7 @@ struct WebViewRepresentable: NSViewRepresentable {
         func webView(_ webView: WKWebView,
                      didFailProvisionalNavigation navigation: WKNavigation!,
                      withError error: Error) {
-            tab.failLoading()
+            tab.failLoading(error: error)
             NSLog("MiniBrowser 加载失败: %@, 错误: %@",
                   webView.url?.absoluteString ?? "(未知地址)", error.localizedDescription)
         }
@@ -280,7 +308,7 @@ struct WebViewRepresentable: NSViewRepresentable {
         func webView(_ webView: WKWebView,
                      didFail navigation: WKNavigation!,
                      withError error: Error) {
-            tab.failLoading()
+            tab.failLoading(error: error)
             NSLog("MiniBrowser 加载中断: %@, 错误: %@",
                   webView.url?.absoluteString ?? "(未知地址)", error.localizedDescription)
         }

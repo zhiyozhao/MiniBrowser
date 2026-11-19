@@ -92,7 +92,7 @@ struct WebViewStackRepresentable: NSViewRepresentable {
         private func shouldFocusWebView(_ id: BrowserTab.ID?, model: BrowserWindowModel) -> Bool {
             guard let id,
                   let tab = model.tabs.first(where: { tab in tab.id == id }) else { return false }
-            return !tab.urlText.isEmpty || tab.openerTabID != nil
+            return tab.hasRealURL
         }
 
         private func updateMounts(preferredID: BrowserTab.ID?) {
@@ -224,12 +224,12 @@ private struct TopBarView: View {
         .background(.regularMaterial)
         .onAppear {
             // 新建（空）标签页时自动聚焦地址栏
-            if tab.urlText.isEmpty {
+            if !tab.hasRealURL {
                 DispatchQueue.main.async { addressFocused = true }
             }
         }
         .onChange(of: tab.id) { _ in
-            addressFocused = tab.urlText.isEmpty
+            addressFocused = !tab.hasRealURL
         }
     }
 
@@ -346,6 +346,11 @@ private struct TopBarView: View {
                         }
                     }
                     .padding(.horizontal, TabBarLayout.horizontalPadding)
+                }
+                .onChange(of: geometry.size.width) { _ in
+                    if let id = model.selectedID {
+                        DispatchQueue.main.async { proxy.scrollTo(id, anchor: .center) }
+                    }
                 }
             }
             .onChange(of: model.selectedID) { id in

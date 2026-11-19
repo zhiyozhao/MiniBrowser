@@ -7,6 +7,28 @@ import WebKit
 @Suite("浏览器优先快捷键", .serialized)
 @MainActor
 struct BrowserShortcutTests {
+    @Test("ABC/Dvorak/德语/法语布局及小键盘按字符识别缩放，不吞 Cmd 方括号")
+    func zoomUsesCharactersAcrossLayouts() {
+        // Corresponding NSEvent characters/key positions; no input source is
+        // selected or changed by this test. Deliberately include US zoom key
+        // positions that produce non-zoom characters in the other layouts.
+        let layouts: [(String, [(UInt16, String, BrowserZoomShortcut?)])] = [
+            ("ABC", [(24, "=", .zoomIn), (27, "-", .zoomOut), (29, "0", .resetZoom)]),
+            ("Dvorak", [(30, "=", .zoomIn), (50, "-", .zoomOut), (27, "[", nil), (24, "]", nil)]),
+            ("German", [(30, "+", .zoomIn), (44, "-", .zoomOut), (27, "ß", nil), (29, "0", .resetZoom)]),
+            ("French", [(24, "-", .zoomOut), (44, "=", .zoomIn), (29, "à", nil), (29, "0", .resetZoom)]),
+            ("Keypad", [(69, "+", .zoomIn), (78, "-", .zoomOut), (82, "0", .resetZoom)])
+        ]
+        for (layout, cases) in layouts {
+            for (keyCode, character, expected) in cases {
+                #expect(BrowserZoomShortcut.action(for: keyEvent(keyCode: keyCode, characters: character,
+                            modifiers: [.command])) == expected, "layout=\(layout), character=\(character)")
+            }
+        }
+        #expect(BrowserZoomShortcut.action(for: keyEvent(keyCode: 24, characters: "+", modifiers: [.command, .shift])) == .zoomIn)
+        #expect(BrowserZoomShortcut.action(for: keyEvent(keyCode: 24, characters: "=", modifiers: [.command, .option])) == nil)
+    }
+
     @Test("网页 preventDefault 不会拦截缩放，普通 Cmd K 仍交给网页")
     func zoomShortcutsBeatPagePreventDefault() async throws {
         let server = try LocalHTTPServer { _ in

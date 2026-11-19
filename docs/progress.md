@@ -1,0 +1,13 @@
+# 开发交接
+
+## 2026-11-19 — tabs-1119 门禁修复
+
+- 地址栏统一过滤 about:blank；空标签选择/恢复时根据 WebView 是否有真实 URL 聚焦地址栏。弹窗提交真实文档后再聚焦页面。
+- 加载标志和进度仅从 WKWebView isLoading/estimatedProgress KVO 同步；主框架策略只更新地址，不启动 spinner。标题统一按失败、停止时标题、文档标题、host 回退。
+- 真实加载测试覆盖端口拒绝后的 WebKit 空文档回退、DNS 失败、超时、用户停止及随后成功加载；不再直接调用导航失败回调。
+- 缩放按 charactersIgnoringModifiers 匹配 +/=/-/0，覆盖 ABC、Dvorak、德语、法语和小键盘；不切换输入法。
+- 窗口宽度变化时滚动当前标签；真实 NSScrollView 可见范围测试覆盖 228/300/420/800pt 和 1/5/15/40 标签。
+- HTTPS fixture 改为系统 Python 标准库提供本地 TLS，OpenSSL 只生成临时证书；增加监督进程、进程组、父进程退出检测和生命周期上限，补正常结束/超时/中断测试，test.sh 强制检查没有 HTTPS 子进程残留。
+- 截图更新到工作区 `MiniBrowser-shots/tabs-1119/`。只在 devs/tabs-1119 提交，不合并、不发布，不操作用户应用实例。
+- 最终 `make check` 退出 0：49 项常规测试 + 23 项弹窗测试 + 1 项性能测试，以及 3 项 Python 进程生命周期测试；结束后 `pgrep -f '[M]iniBrowserTests-https'` 无输出、退出 1。五张最终截图均已查看，正式偏好文件校验未改变。
+- 测试变更理由：替换直接调用失败回调的旧测试为真实连接拒绝、DNS 与超时请求；补主动停止、无标题、history、焦点、缩窗可见范围、键盘字符与 HTTPS 中断清理回归，不删除用例、不降低断言。

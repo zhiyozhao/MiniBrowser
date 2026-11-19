@@ -26,6 +26,7 @@ BEFORE=$(snapshot)
 export MINIBROWSER_DEFAULTS_SUITE="$SUITE"
 export MINIBROWSER_DATA_DIRECTORY="$DATA_DIRECTORY"
 export MINIBROWSER_NONPERSISTENT=1
+/usr/bin/python3 Scripts/test-tls-server-tests.py
 set +e
 if [ "$#" -gt 0 ]; then
     swift test "$@"
@@ -46,6 +47,14 @@ else
 fi
 set -e
 AFTER=$(snapshot)
+for attempt in {1..30}; do
+    if ! pgrep -f '[M]iniBrowserTests-https' >/dev/null; then break; fi
+    sleep 0.1
+done
+if pgrep -f '[M]iniBrowserTests-https' >/dev/null; then
+    echo 'error: HTTPS fixture processes remained after tests' >&2
+    exit 1
+fi
 if [ "$BEFORE" != "$AFTER" ]; then
     echo "error: $TARGET changed during make check" >&2
     exit 1

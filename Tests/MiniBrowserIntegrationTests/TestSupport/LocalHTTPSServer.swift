@@ -10,7 +10,8 @@ final class LocalHTTPSServer {
     private let directory: URL
     private let process: Process
 
-    init(title: String = "trusted-local", trustedCA: Bool = false) async throws {
+    init(title: String = "trusted-local", trustedCA: Bool = false,
+         lifetime: TimeInterval = 120) async throws {
         directory = try makeTemporaryDirectory("https")
         let certificate = directory.appendingPathComponent("certificate.pem")
         let key = directory.appendingPathComponent("key.pem")
@@ -67,15 +68,18 @@ final class LocalHTTPSServer {
         baseURL = URL(string: "https://localhost:\(port)/index.html")!
 
         process = Process()
-        process.executableURL = Self.openssl
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
         process.currentDirectoryURL = directory
+        let supervisor = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("Scripts/test-tls-server.py")
         process.arguments = [
-            "s_server", "-accept", "\(port)", "-cert", certificate.path,
-            "-key", key.path, "-WWW", "-quiet"
+            supervisor.path, "\(getpid())", "\(lifetime)", "/usr/bin/python3",
+            supervisor.path, "serve", "\(port)", certificate.path, key.path
         ]
         process.standardInput = Pipe()
-        process.standardOutput = Pipe()
-        process.standardError = Pipe()
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
         try process.run()
         do {
             try await Self.waitForTCP(port: port)
@@ -93,7 +97,13 @@ final class LocalHTTPSServer {
 
     func stop() {
         if process.isRunning { process.terminate() }
-        process.waitUntilExit()
+        if process.processIdentifier > 0 { process.waitUntilExit() }
+        try? FileManager.default.removeItem(at: directory)
+    }
+
+    deinit {
+        if process.isRunning { process.terminate() }
+        if process.processIdentifier > 0 { process.waitUntilExit() }
         try? FileManager.default.removeItem(at: directory)
     }
 

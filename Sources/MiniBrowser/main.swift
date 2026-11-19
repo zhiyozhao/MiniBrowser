@@ -116,10 +116,10 @@ enum BrowserZoomShortcut: Equatable {
     static func action(for event: NSEvent) -> BrowserZoomShortcut? {
         let flags = event.modifierFlags.intersection([.command, .control, .option, .shift])
         guard flags.contains(.command), !flags.contains(.control), !flags.contains(.option) else { return nil }
-        switch event.keyCode {
-        case 24: return .zoomIn // =, including Cmd+Shift+= (Cmd+plus)
-        case 27: return flags.contains(.shift) ? nil : .zoomOut
-        case 29: return flags.contains(.shift) ? nil : .resetZoom
+        switch event.charactersIgnoringModifiers {
+        case "+", "=": return .zoomIn
+        case "-": return .zoomOut
+        case "0": return .resetZoom
         default: return nil
         }
     }
