@@ -11,6 +11,8 @@
 - `Scripts/test.sh` 给整个测试进程注入唯一 defaults suite 和独立数据目录，并使用 nonPersistent `WKWebsiteDataStore`，不改写 HOME；比较真实 `com.zhao.minibrowser.plist` 的前后 SHA-256，并检查无 `MiniBrowserCoreTests.*.plist` 遗留。Core 测试清理时同步执行独立 suite 的 `defaults delete`，避免 cfprefsd 并行重建空 plist。
 - HTTPS 证书由系统 OpenSSL 生成，HTTP/SSL 服务由系统 Python 标准库提供并监督：只监听 127.0.0.1、独立进程组、父进程存活检测、120 秒上限，结束时 TERM 后最多等待 1 秒再 KILL 并 reap。生命周期测试覆盖正常停止、超时和父测试进程中断；测试脚本最终检查没有 `MiniBrowserTests-https` 进程遗留。
 
+标签切换性能测试在 `CI=true` 或 `GITHUB_ACTIONS=true` 时仍运行并输出测量数据，但不以主线程 p95 < 16ms 判定成败：共享 runner 的性能波动不适合作为该预算的门禁。页面加载、可见性及其他功能断言继续严格执行，JSON 报告中的 `enforcesMainThreadBudget` 标明是否执行预算断言。本地 `make check`（未设置上述 CI 标志）继续严格执行 16ms 预算；`make perf` 通过同一个隔离测试脚本单独运行性能测试，并显式关闭 CI 模式，始终严格执行该预算。
+
 核心逻辑修改采用红绿 TDD：先运行能复现问题的测试并确认失败，再实现修改。不要为了通过测试而删除用例、降低断言或加入 skip。
 
 ## 行为边界

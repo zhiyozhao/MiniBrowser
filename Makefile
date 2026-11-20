@@ -2,7 +2,7 @@ APP := MiniBrowser.app
 VERSION := $(shell Scripts/version.sh 2>/dev/null)
 DMG := MiniBrowser-$(VERSION).dmg
 
-.PHONY: check lint build test run package clean
+.PHONY: check lint build test perf run package clean
 
 ## check: 静态检查 + 单元测试 + 构建（CI 使用同一入口）
 check: lint test build
@@ -20,6 +20,10 @@ build:
 
 test:
 	Scripts/test.sh
+
+## perf: 独立运行标签切换性能测试，严格执行本地 16ms 预算
+perf:
+	env CI=false GITHUB_ACTIONS=false Scripts/test.sh --filter TabSwitchPerformanceTests
 
 ## run: 打包 DEV X 签名的 release app，做 5 秒启动冒烟后只关闭该进程
 run:
