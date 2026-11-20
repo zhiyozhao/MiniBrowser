@@ -271,8 +271,14 @@ struct TabLayoutAndLoadingTests {
 
     @Test("生成窄窗口标签栏和加载中截图")
     func tabLayoutScreenshots() async throws {
-        let output = URL(fileURLWithPath: "/Users/zhao/Codes/Agents/Devs/MiniBrowser-shots/tabs-1119",
-                         isDirectory: true)
+        let output: URL
+        if let configured = ProcessInfo.processInfo.environment["MINIBROWSER_SHOTS_DIR"],
+           !configured.isEmpty {
+            output = URL(fileURLWithPath: configured, isDirectory: true)
+        } else {
+            output = FileManager.default.temporaryDirectory
+                .appendingPathComponent("MiniBrowser-shots/tabs-1119", isDirectory: true)
+        }
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
         for width in [CGFloat(228), 300, 420, 800] {
             let model = BrowserWindowModel()
