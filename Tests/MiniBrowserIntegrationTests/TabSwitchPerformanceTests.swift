@@ -59,10 +59,16 @@ struct TabSwitchPerformanceTests {
         hosting.sizingOptions = []
         window.contentViewController = hosting
         window.orderFront(nil)
-        window.setContentSize(NSSize(width: 1100, height: 760))
+        // AppKit constrains visible windows to the screen; CI displays can be
+        // shorter than the preferred benchmark viewport.
+        let availableContent = window.screen.map { window.contentRect(forFrameRect: $0.visibleFrame).size }
+            ?? NSSize(width: 1100, height: 760)
+        let viewport = NSSize(width: min(1100, availableContent.width),
+                              height: min(760, availableContent.height))
+        window.setContentSize(viewport)
         hosting.view.layoutSubtreeIfNeeded()
-        #expect(window.contentView!.bounds.width == 1100)
-        #expect(window.contentView!.bounds.height == 760)
+        #expect(window.contentView!.bounds.width == viewport.width)
+        #expect(window.contentView!.bounds.height == viewport.height)
         defer {
             for tab in model.tabs { tab.webView.stopLoading() }
             window.contentViewController = nil
